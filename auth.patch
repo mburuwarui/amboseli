@@ -1,0 +1,2967 @@
+From dd53d7979e1a094562c7b6a699b11b0ed5cc85e1 Mon Sep 17 00:00:00 2001
+From: Andrew <andrewianstewart@gmail.com>
+Date: Mon, 18 Dec 2023 15:00:14 -0500
+Subject: [PATCH] How to add Magic Link Authentication
+
+---
+ lib/amboseli/users.ex                          | 205 +++---------
+ lib/amboseli/users/user.ex                     |  91 +-----
+ lib/amboseli/users/user_notifier.ex            | 150 ++++++---
+ lib/amboseli/users/user_token.ex               |  11 +-
+ .../components/layouts/root.html.heex         |  16 +-
+ .../controllers/user_session_controller.ex    |  41 ++-
+ .../user_confirmation_instructions_live.ex    |  51 ---
+ .../live/user_confirmation_live.ex            |  58 ----
+ .../live/user_forgot_password_live.ex         |  50 ---
+ lib/amboseli_web/live/user_login_live.ex       |  77 +++--
+ .../live/user_registration_live.ex            |  87 -----
+ .../live/user_reset_password_live.ex          |  89 ------
+ lib/amboseli_web/live/user_settings_live.ex    | 101 +-----
+ lib/amboseli_web/router.ex                     |  22 +-
+ lib/amboseli_web/user_auth.ex                  |   6 +-
+ mix.exs                                       |   2 +-
+ ...5213319_remove_password_from_users.exs.exs |   9 +
+ test/amboseli/users_test.exs                   | 296 +-----------------
+ .../user_session_controller_test.exs          | 106 ++-----
+ ...er_confirmation_instructions_live_test.exs |  67 ----
+ .../live/user_confirmation_live_test.exs      |  89 ------
+ .../live/user_forgot_password_live_test.exs   |  63 ----
+ .../amboseli_web/live/user_login_live_test.exs |  80 ++---
+ .../live/user_registration_live_test.exs      |  87 -----
+ .../live/user_reset_password_live_test.exs    | 118 -------
+ .../live/user_settings_live_test.exs          | 120 ++-----
+ test/amboseli_web/user_auth_test.exs           |  14 +-
+ test/support/conn_case.ex                     |   8 +-
+ test/support/data_case.ex                     |   5 -
+ test/support/fixtures/users_fixtures.ex       |   5 +-
+ 30 files changed, 365 insertions(+), 1759 deletions(-)
+ delete mode 100644 lib/amboseli_web/live/user_confirmation_instructions_live.ex
+ delete mode 100644 lib/amboseli_web/live/user_confirmation_live.ex
+ delete mode 100644 lib/amboseli_web/live/user_forgot_password_live.ex
+ delete mode 100644 lib/amboseli_web/live/user_registration_live.ex
+ delete mode 100644 lib/amboseli_web/live/user_reset_password_live.ex
+ create mode 100644 priv/repo/migrations/20231215213319_remove_password_from_users.exs.exs
+ delete mode 100644 test/amboseli_web/live/user_confirmation_instructions_live_test.exs
+ delete mode 100644 test/amboseli_web/live/user_confirmation_live_test.exs
+ delete mode 100644 test/amboseli_web/live/user_forgot_password_live_test.exs
+ delete mode 100644 test/amboseli_web/live/user_registration_live_test.exs
+ delete mode 100644 test/amboseli_web/live/user_reset_password_live_test.exs
+
+diff --git a/lib/amboseli/users.ex b/lib/amboseli/users.ex
+index a919792..37c97ce 100644
+--- a/lib/amboseli/users.ex
++++ b/lib/amboseli/users.ex
+@@ -10,6 +10,15 @@ defmodule Amboseli.Users do
+ 
+   ## Database getters
+ 
++  def get_user_by_email_token(token, context) do
++    with {:ok, query} <- UserToken.verify_email_token_query(token, context),
++         %User{} = user <- Repo.one(query) do
++      user
++    else
++      _ -> nil
++    end
++  end
++
+   @doc """
+   Gets a user by email.
+ 
+@@ -26,24 +35,6 @@ defmodule Amboseli.Users do
+     Repo.get_by(User, email: email)
+   end
+ 
+-  @doc """
+-  Gets a user by email and password.
+-
+-  ## Amboselis
+-
+-      iex> get_user_by_email_and_password("foo@amboseli.com", "correct_password")
+-      %User{}
+-
+-      iex> get_user_by_email_and_password("foo@amboseli.com", "invalid_password")
+-      nil
+-
+-  """
+-  def get_user_by_email_and_password(email, password)
+-      when is_binary(email) and is_binary(password) do
+-    user = Repo.get_by(User, email: email)
+-    if User.valid_password?(user, password), do: user
+-  end
+-
+   @doc """
+   Gets a single user.
+ 
+@@ -80,19 +71,6 @@ defmodule Amboseli.Users do
+     |> Repo.insert()
+   end
+ 
+-  @doc """
+-  Returns an `%Ecto.Changeset{}` for tracking user changes.
+-
+-  ## Amboselis
+-
+-      iex> change_user_registration(user)
+-      %Ecto.Changeset{data: %User{}}
+-
+-  """
+-  def change_user_registration(%User{} = user, attrs \\ %{}) do
+-    User.registration_changeset(user, attrs, hash_password: false, validate_email: false)
+-  end
+-
+   ## Settings
+ 
+   @doc """
+@@ -121,10 +99,9 @@ defmodule Amboseli.Users do
+       {:error, %Ecto.Changeset{}}
+ 
+   """
+-  def apply_user_email(user, password, attrs) do
++  def apply_user_email(user, attrs) do
+     user
+     |> User.email_changeset(attrs)
+-    |> User.validate_current_password(password)
+     |> Ecto.Changeset.apply_action(:update)
+   end
+ 
+@@ -174,47 +151,6 @@ defmodule Amboseli.Users do
+     UserNotifier.deliver_update_email_instructions(user, update_email_url_fun.(encoded_token))
+   end
+ 
+-  @doc """
+-  Returns an `%Ecto.Changeset{}` for changing the user password.
+-
+-  ## Amboselis
+-
+-      iex> change_user_password(user)
+-      %Ecto.Changeset{data: %User{}}
+-
+-  """
+-  def change_user_password(user, attrs \\ %{}) do
+-    User.password_changeset(user, attrs, hash_password: false)
+-  end
+-
+-  @doc """
+-  Updates the user password.
+-
+-  ## Amboselis
+-
+-      iex> update_user_password(user, "valid password", %{password: ...})
+-      {:ok, %User{}}
+-
+-      iex> update_user_password(user, "invalid password", %{password: ...})
+-      {:error, %Ecto.Changeset{}}
+-
+-  """
+-  def update_user_password(user, password, attrs) do
+-    changeset =
+-      user
+-      |> User.password_changeset(attrs)
+-      |> User.validate_current_password(password)
+-
+-    Ecto.Multi.new()
+-    |> Ecto.Multi.update(:user, changeset)
+-    |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, :all))
+-    |> Repo.transaction()
+-    |> case do
+-      {:ok, %{user: user}} -> {:ok, user}
+-      {:error, :user, changeset, _} -> {:error, changeset}
+-    end
+-  end
+-
+   ## Session
+ 
+   @doc """
+@@ -244,110 +180,45 @@ defmodule Amboseli.Users do
+ 
+   ## Confirmation
+ 
+-  @doc ~S"""
+-  Delivers the confirmation email instructions to the given user.
+-
+-  ## Amboselis
+-
+-      iex> deliver_user_confirmation_instructions(user, &url(~p"/users/confirm/#{&1}"))
+-      {:ok, %{to: ..., body: ...}}
+-
+-      iex> deliver_user_confirmation_instructions(confirmed_user, &url(~p"/users/confirm/#{&1}"))
+-      {:error, :already_confirmed}
+-
+-  """
+-  def deliver_user_confirmation_instructions(%User{} = user, confirmation_url_fun)
+-      when is_function(confirmation_url_fun, 1) do
+-    if user.confirmed_at do
+-      {:error, :already_confirmed}
+-    else
+-      {encoded_token, user_token} = UserToken.build_email_token(user, "confirm")
+-      Repo.insert!(user_token)
+-      UserNotifier.deliver_confirmation_instructions(user, confirmation_url_fun.(encoded_token))
+-    end
+-  end
+-
+   @doc """
+-  Confirms a user by the given token.
+-
+-  If the token matches, the user account is marked as confirmed
+-  and the token is deleted.
++  Confirms a user. Does nothing if they're already confirmed.
+   """
+-  def confirm_user(token) do
+-    with {:ok, query} <- UserToken.verify_email_token_query(token, "confirm"),
+-         %User{} = user <- Repo.one(query),
+-         {:ok, %{user: user}} <- Repo.transaction(confirm_user_multi(user)) do
+-      {:ok, user}
+-    else
+-      _ -> :error
+-    end
++  # NOTE: You could add a last_seen_at timestamp update here.
++  def confirm_user(%User{confirmed_at: confirmed_at} = user) when is_nil(confirmed_at) do
++    user
++    |> User.confirm_changeset()
++    |> Repo.update()
+   end
+ 
+-  defp confirm_user_multi(user) do
+-    Ecto.Multi.new()
+-    |> Ecto.Multi.update(:user, User.confirm_changeset(user))
+-    |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, ["confirm"]))
++  def confirm_user(%User{confirmed_at: confirmed_at} = user) when not is_nil(confirmed_at) do
++    {:ok, user}
+   end
+ 
+-  ## Reset password
++  ## Authentication
+ 
+-  @doc ~S"""
+-  Delivers the reset password email to the given user.
++  def login_or_register_user(email) do
++    case get_user_by_email(email) do
++      # Found existing user.
++      %User{} = user ->
++        {email_token, token} = UserToken.build_email_token(user, "magic_link")
++        Repo.insert!(token)
+ 
+-  ## Amboselis
++        UserNotifier.deliver_login_link(
++          user,
++          "#{AmboseliWeb.Endpoint.url()}/login/email/token/#{email_token}"
++        )
+ 
+-      iex> deliver_user_reset_password_instructions(user, &url(~p"/users/reset_password/#{&1}"))
+-      {:ok, %{to: ..., body: ...}}
++      # New user, create a new account.
++      _ ->
++        {:ok, user} = register_user(%{email: email})
+ 
+-  """
+-  def deliver_user_reset_password_instructions(%User{} = user, reset_password_url_fun)
+-      when is_function(reset_password_url_fun, 1) do
+-    {encoded_token, user_token} = UserToken.build_email_token(user, "reset_password")
+-    Repo.insert!(user_token)
+-    UserNotifier.deliver_reset_password_instructions(user, reset_password_url_fun.(encoded_token))
+-  end
++        {email_token, token} = UserToken.build_email_token(user, "magic_link")
++        Repo.insert!(token)
+ 
+-  @doc """
+-  Gets the user by reset password token.
+-
+-  ## Amboselis
+-
+-      iex> get_user_by_reset_password_token("validtoken")
+-      %User{}
+-
+-      iex> get_user_by_reset_password_token("invalidtoken")
+-      nil
+-
+-  """
+-  def get_user_by_reset_password_token(token) do
+-    with {:ok, query} <- UserToken.verify_email_token_query(token, "reset_password"),
+-         %User{} = user <- Repo.one(query) do
+-      user
+-    else
+-      _ -> nil
+-    end
+-  end
+-
+-  @doc """
+-  Resets the user password.
+-
+-  ## Amboselis
+-
+-      iex> reset_user_password(user, %{password: "new long password", password_confirmation: "new long password"})
+-      {:ok, %User{}}
+-
+-      iex> reset_user_password(user, %{password: "valid", password_confirmation: "not the same"})
+-      {:error, %Ecto.Changeset{}}
+-
+-  """
+-  def reset_user_password(user, attrs) do
+-    Ecto.Multi.new()
+-    |> Ecto.Multi.update(:user, User.password_changeset(user, attrs))
+-    |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, :all))
+-    |> Repo.transaction()
+-    |> case do
+-      {:ok, %{user: user}} -> {:ok, user}
+-      {:error, :user, changeset, _} -> {:error, changeset}
++        UserNotifier.deliver_register_link(
++          user,
++          "#{AmboseliWeb.Endpoint.url()}/login/email/token/#{email_token}"
++        )
+     end
+   end
+ end
+diff --git a/lib/amboseli/users/user.ex b/lib/amboseli/users/user.ex
+index c8dca19..5f326d1 100644
+--- a/lib/amboseli/users/user.ex
++++ b/lib/amboseli/users/user.ex
+@@ -4,8 +4,6 @@ defmodule Amboseli.Users.User do
+ 
+   schema "users" do
+     field :email, :string
+-    field :password, :string, virtual: true, redact: true
+-    field :hashed_password, :string, redact: true
+     field :confirmed_at, :naive_datetime
+ 
+     timestamps(type: :utc_datetime)
+@@ -14,20 +12,12 @@ defmodule Amboseli.Users.User do
+   @doc """
+   A user changeset for registration.
+ 
+-  It is important to validate the length of both email and password.
++  It is important to validate the length of email addresses.
+   Otherwise databases may truncate the email without warnings, which
+-  could lead to unpredictable or insecure behaviour. Long passwords may
+-  also be very expensive to hash for certain algorithms.
++  could lead to unpredictable or insecure behaviour.
+ 
+   ## Options
+ 
+-    * `:hash_password` - Hashes the password so it can be stored securely
+-      in the database and ensures the password field is cleared to prevent
+-      leaks in the logs. If password hashing is not needed and clearing the
+-      password field is not desired (like when using this changeset for
+-      validations on a LiveView form), this option can be set to `false`.
+-      Defaults to `true`.
+-
+     * `:validate_email` - Validates the uniqueness of the email, in case
+       you don't want to validate the uniqueness of the email (like when
+       using this changeset for validations on a LiveView form before
+@@ -36,9 +26,8 @@ defmodule Amboseli.Users.User do
+   """
+   def registration_changeset(user, attrs, opts \\ []) do
+     user
+-    |> cast(attrs, [:email, :password])
++    |> cast(attrs, [:email])
+     |> validate_email(opts)
+-    |> validate_password(opts)
+   end
+ 
+   defp validate_email(changeset, opts) do
+@@ -49,34 +38,6 @@ defmodule Amboseli.Users.User do
+     |> maybe_validate_unique_email(opts)
+   end
+ 
+-  defp validate_password(changeset, opts) do
+-    changeset
+-    |> validate_required([:password])
+-    |> validate_length(:password, min: 12, max: 72)
+-    # Amboselis of additional password validation:
+-    # |> validate_format(:password, ~r/[a-z]/, message: "at least one lower case character")
+-    # |> validate_format(:password, ~r/[A-Z]/, message: "at least one upper case character")
+-    # |> validate_format(:password, ~r/[!?@#$%^&*_0-9]/, message: "at least one digit or punctuation character")
+-    |> maybe_hash_password(opts)
+-  end
+-
+-  defp maybe_hash_password(changeset, opts) do
+-    hash_password? = Keyword.get(opts, :hash_password, true)
+-    password = get_change(changeset, :password)
+-
+-    if hash_password? && password && changeset.valid? do
+-      changeset
+-      # If using Bcrypt, then further validate it is at most 72 bytes long
+-      |> validate_length(:password, max: 72, count: :bytes)
+-      # Hashing could be done with `Ecto.Changeset.prepare_changes/2`, but that
+-      # would keep the database transaction open longer and hurt performance.
+-      |> put_change(:hashed_password, Bcrypt.hash_pwd_salt(password))
+-      |> delete_change(:password)
+-    else
+-      changeset
+-    end
+-  end
+-
+   defp maybe_validate_unique_email(changeset, opts) do
+     if Keyword.get(opts, :validate_email, true) do
+       changeset
+@@ -102,25 +63,6 @@ defmodule Amboseli.Users.User do
+     end
+   end
+ 
+-  @doc """
+-  A user changeset for changing the password.
+-
+-  ## Options
+-
+-    * `:hash_password` - Hashes the password so it can be stored securely
+-      in the database and ensures the password field is cleared to prevent
+-      leaks in the logs. If password hashing is not needed and clearing the
+-      password field is not desired (like when using this changeset for
+-      validations on a LiveView form), this option can be set to `false`.
+-      Defaults to `true`.
+-  """
+-  def password_changeset(user, attrs, opts \\ []) do
+-    user
+-    |> cast(attrs, [:password])
+-    |> validate_confirmation(:password, message: "does not match password")
+-    |> validate_password(opts)
+-  end
+-
+   @doc """
+   Confirms the account by setting `confirmed_at`.
+   """
+@@ -128,31 +70,4 @@ defmodule Amboseli.Users.User do
+     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+     change(user, confirmed_at: now)
+   end
+-
+-  @doc """
+-  Verifies the password.
+-
+-  If there is no user or the user doesn't have a password, we call
+-  `Bcrypt.no_user_verify/0` to avoid timing attacks.
+-  """
+-  def valid_password?(%Amboseli.Users.User{hashed_password: hashed_password}, password)
+-      when is_binary(hashed_password) and byte_size(password) > 0 do
+-    Bcrypt.verify_pass(password, hashed_password)
+-  end
+-
+-  def valid_password?(_, _) do
+-    Bcrypt.no_user_verify()
+-    false
+-  end
+-
+-  @doc """
+-  Validates the current password otherwise adds an error to the changeset.
+-  """
+-  def validate_current_password(changeset, password) do
+-    if valid_password?(changeset.data, password) do
+-      changeset
+-    else
+-      add_error(changeset, :current_password, "is not valid")
+-    end
+-  end
+ end
+diff --git a/lib/amboseli/users/user_notifier.ex b/lib/amboseli/users/user_notifier.ex
+index c73253b..c7d79da 100644
+--- a/lib/amboseli/users/user_notifier.ex
++++ b/lib/amboseli/users/user_notifier.ex
+@@ -1,79 +1,141 @@
+ defmodule Amboseli.Users.UserNotifier do
+   import Swoosh.Email
+ 
++  import Phoenix.Component
++
+   alias Amboseli.Mailer
+ 
+-  # Delivers the email using the application mailer.
+-  defp deliver(recipient, subject, body) do
++  def deliver(opts) do
+     email =
+-      new()
+-      |> to(recipient)
+-      |> from({"Amboseli", "contact@amboseli.com"})
+-      |> subject(subject)
+-      |> text_body(body)
++      new(
++        from: {"Amboseli Support", "contact@amboseli.com"},
++        to: opts[:to],
++        subject: opts[:subject],
++        html_body: opts[:html_body],
++        text_body: opts[:text_body]
++      )
+ 
+     with {:ok, _metadata} <- Mailer.deliver(email) do
+       {:ok, email}
+     end
+   end
+ 
+-  @doc """
+-  Deliver instructions to confirm account.
+-  """
+-  def deliver_confirmation_instructions(user, url) do
+-    deliver(user.email, "Confirmation instructions", """
+-
+-    ==============================
++  def deliver_update_email_instructions(user, url) do
++    {html, text} = render_content(&email_update_content/1, %{url: url})
++
++    deliver(
++      to: user.email,
++      subject: "Confirm your new email on AmboseliApp",
++      html_body: html,
++      text_body: text
++    )
++  end
+ 
+-    Hi #{user.email},
++  def deliver_login_link(user, url) do
++    {html, text} = render_content(&login_content/1, %{url: url})
+ 
+-    You can confirm your account by visiting the URL below:
++    deliver(
++      to: user.email,
++      subject: "Sign in to AmboseliApp",
++      html_body: html,
++      text_body: text
++    )
++  end
+ 
+-    #{url}
++  def deliver_register_link(user, url) do
++    {html, text} = render_content(&register_content/1, %{url: url})
+ 
+-    If you didn't create an account with us, please ignore this.
++    deliver(
++      to: user.email,
++      subject: "Create your account on AmboseliApp",
++      html_body: html,
++      text_body: text
++    )
++  end
+ 
+-    ==============================
+-    """)
++  defp email_layout(assigns) do
++    ~H"""
++    <!DOCTYPE html>
++    <html lang="en">
++      <head>
++        <meta charset="UTF-8" />
++        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++        <style>
++          body {
++            font-family: system-ui, sans-serif;
++            margin: 3em auto;
++            overflow-wrap: break-word;
++            word-break: break-all;
++            max-width: 1024px;
++            padding: 0 1em;
++          }
++        </style>
++      </head>
++      <body>
++        <%= render_slot(@inner_block) %>
++      </body>
++    </html>
++    """
+   end
+ 
+-  @doc """
+-  Deliver instructions to reset a user password.
+-  """
+-  def deliver_reset_password_instructions(user, url) do
+-    deliver(user.email, "Reset password instructions", """
++  def email_update_content(assigns) do
++    ~H"""
++    <.email_layout>
++      <p>Click the link below to confirm this as your new email.</p>
+ 
+-    ==============================
++      <a href={@url}><%= @url %></a>
+ 
+-    Hi #{user.email},
++      <p>If you didn't request this email, feel free to ignore this.</p>
++    </.email_layout>
++    """
++  end
+ 
+-    You can reset your password by visiting the URL below:
++  def register_content(assigns) do
++    ~H"""
++    <.email_layout>
++      <h1>Hey there!</h1>
+ 
+-    #{url}
++      <p>Please use this link to create your account at AmboseliApp:</p>
+ 
+-    If you didn't request this change, please ignore this.
++      <a href={@url}><%= @url %></a>
+ 
+-    ==============================
+-    """)
++      <p>If you didn't request this email, feel free to ignore this.</p>
++    </.email_layout>
++    """
+   end
+ 
+-  @doc """
+-  Deliver instructions to update a user email.
+-  """
+-  def deliver_update_email_instructions(user, url) do
+-    deliver(user.email, "Update email instructions", """
++  def login_content(assigns) do
++    ~H"""
++    <.email_layout>
++      <h1>Hey there!</h1>
++
++      <p>Please use this link to sign in to MyApp:</p>
+ 
+-    ==============================
++      <a href={@url}><%= @url %></a>
+ 
+-    Hi #{user.email},
++      <p>If you didn't request this email, feel free to ignore this.</p>
++    </.email_layout>
++    """
++  end
+ 
+-    You can change your email by visiting the URL below:
++  defp heex_to_html(template) do
++    template
++    |> Phoenix.HTML.Safe.to_iodata()
++    |> IO.iodata_to_binary()
++  end
+ 
+-    #{url}
++  defp html_to_text(html) do
++    html
++    |> Floki.parse_document!()
++    |> Floki.find("body")
++    |> Floki.text(sep: "\n\n")
++  end
+ 
+-    If you didn't request this change, please ignore this.
++  defp render_content(content_fn, assigns) do
++    template = content_fn.(assigns)
++    html = heex_to_html(template)
++    text = html_to_text(html)
+ 
+-    ==============================
+-    """)
++    {html, text}
+   end
+ end
+diff --git a/lib/amboseli/users/user_token.ex b/lib/amboseli/users/user_token.ex
+index 7e808c7..22c883e 100644
+--- a/lib/amboseli/users/user_token.ex
++++ b/lib/amboseli/users/user_token.ex
+@@ -6,9 +6,9 @@ defmodule Amboseli.Users.UserToken do
+   @hash_algorithm :sha256
+   @rand_size 32
+ 
+-  # It is very important to keep the reset password token expiry short,
++  # It is very important to keep the email token expiry short,
+   # since someone with access to the email may take over the account.
+-  @reset_password_validity_in_days 1
++  @email_token_validity_in_days 1
+   @confirm_validity_in_days 7
+   @change_email_validity_in_days 7
+   @session_validity_in_days 60
+@@ -102,10 +102,7 @@ defmodule Amboseli.Users.UserToken do
+   The given token is valid if it matches its hashed counterpart in the
+   database and the user email has not changed. This function also checks
+   if the token is being used within a certain period, depending on the
+-  context. The default contexts supported by this function are either
+-  "confirm", for account confirmation emails, and "reset_password",
+-  for resetting the password. For verifying requests to change the email,
+-  see `verify_change_email_token_query/2`.
++  context.
+   """
+   def verify_email_token_query(token, context) do
+     case Base.url_decode64(token, padding: false) do
+@@ -126,8 +123,8 @@ defmodule Amboseli.Users.UserToken do
+     end
+   end
+ 
++  defp days_for_context("magic_link"), do: @email_token_validity_in_days
+   defp days_for_context("confirm"), do: @confirm_validity_in_days
+-  defp days_for_context("reset_password"), do: @reset_password_validity_in_days
+ 
+   @doc """
+   Checks if the token is valid and returns its underlying lookup query.
+diff --git a/lib/amboseli_web/components/layouts/root.html.heex b/lib/amboseli_web/components/layouts/root.html.heex
+index cdb0408..cdb128b 100644
+--- a/lib/amboseli_web/components/layouts/root.html.heex
++++ b/lib/amboseli_web/components/layouts/root.html.heex
+@@ -19,7 +19,7 @@
+         </li>
+         <li>
+           <.link
+-            href={~p"/users/settings"}
++            href={~p"/account"}
+             class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+           >
+             Settings
+@@ -27,7 +27,7 @@
+         </li>
+         <li>
+           <.link
+-            href={~p"/users/log_out"}
++            href={~p"/logout"}
+             method="delete"
+             class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+           >
+@@ -37,18 +37,10 @@
+       <% else %>
+         <li>
+           <.link
+-            href={~p"/users/register"}
++            href={~p"/login"}
+             class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+           >
+-            Register
+-          </.link>
+-        </li>
+-        <li>
+-          <.link
+-            href={~p"/users/log_in"}
+-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+-          >
+-            Log in
++            Sign In
+           </.link>
+         </li>
+       <% end %>
+diff --git a/lib/amboseli_web/controllers/user_session_controller.ex b/lib/amboseli_web/controllers/user_session_controller.ex
+index c26d834..00603f8 100644
+--- a/lib/amboseli_web/controllers/user_session_controller.ex
++++ b/lib/amboseli_web/controllers/user_session_controller.ex
+@@ -3,34 +3,31 @@ defmodule AmboseliWeb.UserSessionController do
+ 
+   alias Amboseli.Users
+   alias AmboseliWeb.UserAuth
++  alias Amboseli.Users.User
+ 
+-  def create(conn, %{"_action" => "registered"} = params) do
+-    create(conn, params, "Account created successfully!")
+-  end
++  def send_magic_link(conn, params) do
++    %{"user" => %{"email" => email}} = params
++
++    Users.login_or_register_user(email)
+ 
+-  def create(conn, %{"_action" => "password_updated"} = params) do
+     conn
+-    |> put_session(:user_return_to, ~p"/users/settings")
+-    |> create(params, "Password updated successfully!")
++    |> put_flash(:info, "We've sent an email to #{email}, with a one-time sign-in link.")
++    |> redirect(to: ~p"/login")
+   end
+ 
+-  def create(conn, params) do
+-    create(conn, params, "Welcome back!")
+-  end
++  def login_with_token(conn, %{"token" => token} = _params) do
++    case Users.get_user_by_email_token(token, "magic_link") do
++      %User{} = user ->
++        {:ok, user} = Users.confirm_user(user)
++
++        conn
++        |> put_flash(:info, "Logged in successfully.")
++        |> UserAuth.login_user(user)
+ 
+-  defp create(conn, %{"user" => user_params}, info) do
+-    %{"email" => email, "password" => password} = user_params
+-
+-    if user = Users.get_user_by_email_and_password(email, password) do
+-      conn
+-      |> put_flash(:info, info)
+-      |> UserAuth.log_in_user(user, user_params)
+-    else
+-      # In order to prevent user enumeration attacks, don't disclose whether the email is registered.
+-      conn
+-      |> put_flash(:error, "Invalid email or password")
+-      |> put_flash(:email, String.slice(email, 0, 160))
+-      |> redirect(to: ~p"/users/log_in")
++      _ ->
++        conn
++        |> put_flash(:error, "That link didn't seem to work. Please try again.")
++        |> redirect(to: ~p"/login")
+     end
+   end
+ 
+diff --git a/lib/amboseli_web/live/user_confirmation_instructions_live.ex b/lib/amboseli_web/live/user_confirmation_instructions_live.ex
+deleted file mode 100644
+index 92faf62..0000000
+--- a/lib/amboseli_web/live/user_confirmation_instructions_live.ex
++++ /dev/null
+@@ -1,51 +0,0 @@
+-defmodule AmboseliWeb.UserConfirmationInstructionsLive do
+-  use AmboseliWeb, :live_view
+-
+-  alias Amboseli.Users
+-
+-  def render(assigns) do
+-    ~H"""
+-    <div class="mx-auto max-w-sm">
+-      <.header class="text-center">
+-        No confirmation instructions received?
+-        <:subtitle>We'll send a new confirmation link to your inbox</:subtitle>
+-      </.header>
+-
+-      <.simple_form for={@form} id="resend_confirmation_form" phx-submit="send_instructions">
+-        <.input field={@form[:email]} type="email" placeholder="Email" required />
+-        <:actions>
+-          <.button phx-disable-with="Sending..." class="w-full">
+-            Resend confirmation instructions
+-          </.button>
+-        </:actions>
+-      </.simple_form>
+-
+-      <p class="text-center mt-4">
+-        <.link href={~p"/users/register"}>Register</.link>
+-        | <.link href={~p"/users/log_in"}>Log in</.link>
+-      </p>
+-    </div>
+-    """
+-  end
+-
+-  def mount(_params, _session, socket) do
+-    {:ok, assign(socket, form: to_form(%{}, as: "user"))}
+-  end
+-
+-  def handle_event("send_instructions", %{"user" => %{"email" => email}}, socket) do
+-    if user = Users.get_user_by_email(email) do
+-      Users.deliver_user_confirmation_instructions(
+-        user,
+-        &url(~p"/users/confirm/#{&1}")
+-      )
+-    end
+-
+-    info =
+-      "If your email is in our system and it has not been confirmed yet, you will receive an email with instructions shortly."
+-
+-    {:noreply,
+-     socket
+-     |> put_flash(:info, info)
+-     |> redirect(to: ~p"/")}
+-  end
+-end
+diff --git a/lib/amboseli_web/live/user_confirmation_live.ex b/lib/amboseli_web/live/user_confirmation_live.ex
+deleted file mode 100644
+index 7e0c7cd..0000000
+--- a/lib/amboseli_web/live/user_confirmation_live.ex
++++ /dev/null
+@@ -1,58 +0,0 @@
+-defmodule AmboseliWeb.UserConfirmationLive do
+-  use AmboseliWeb, :live_view
+-
+-  alias Amboseli.Users
+-
+-  def render(%{live_action: :edit} = assigns) do
+-    ~H"""
+-    <div class="mx-auto max-w-sm">
+-      <.header class="text-center">Confirm Account</.header>
+-
+-      <.simple_form for={@form} id="confirmation_form" phx-submit="confirm_account">
+-        <.input field={@form[:token]} type="hidden" />
+-        <:actions>
+-          <.button phx-disable-with="Confirming..." class="w-full">Confirm my account</.button>
+-        </:actions>
+-      </.simple_form>
+-
+-      <p class="text-center mt-4">
+-        <.link href={~p"/users/register"}>Register</.link>
+-        | <.link href={~p"/users/log_in"}>Log in</.link>
+-      </p>
+-    </div>
+-    """
+-  end
+-
+-  def mount(%{"token" => token}, _session, socket) do
+-    form = to_form(%{"token" => token}, as: "user")
+-    {:ok, assign(socket, form: form), temporary_assigns: [form: nil]}
+-  end
+-
+-  # Do not log in the user after confirmation to avoid a
+-  # leaked token giving the user access to the account.
+-  def handle_event("confirm_account", %{"user" => %{"token" => token}}, socket) do
+-    case Users.confirm_user(token) do
+-      {:ok, _} ->
+-        {:noreply,
+-         socket
+-         |> put_flash(:info, "User confirmed successfully.")
+-         |> redirect(to: ~p"/")}
+-
+-      :error ->
+-        # If there is a current user and the account was already confirmed,
+-        # then odds are that the confirmation link was already visited, either
+-        # by some automation or by the user themselves, so we redirect without
+-        # a warning message.
+-        case socket.assigns do
+-          %{current_user: %{confirmed_at: confirmed_at}} when not is_nil(confirmed_at) ->
+-            {:noreply, redirect(socket, to: ~p"/")}
+-
+-          %{} ->
+-            {:noreply,
+-             socket
+-             |> put_flash(:error, "User confirmation link is invalid or it has expired.")
+-             |> redirect(to: ~p"/")}
+-        end
+-    end
+-  end
+-end
+diff --git a/lib/amboseli_web/live/user_forgot_password_live.ex b/lib/amboseli_web/live/user_forgot_password_live.ex
+deleted file mode 100644
+index 38b7b63..0000000
+--- a/lib/amboseli_web/live/user_forgot_password_live.ex
++++ /dev/null
+@@ -1,50 +0,0 @@
+-defmodule AmboseliWeb.UserForgotPasswordLive do
+-  use AmboseliWeb, :live_view
+-
+-  alias Amboseli.Users
+-
+-  def render(assigns) do
+-    ~H"""
+-    <div class="mx-auto max-w-sm">
+-      <.header class="text-center">
+-        Forgot your password?
+-        <:subtitle>We'll send a password reset link to your inbox</:subtitle>
+-      </.header>
+-
+-      <.simple_form for={@form} id="reset_password_form" phx-submit="send_email">
+-        <.input field={@form[:email]} type="email" placeholder="Email" required />
+-        <:actions>
+-          <.button phx-disable-with="Sending..." class="w-full">
+-            Send password reset instructions
+-          </.button>
+-        </:actions>
+-      </.simple_form>
+-      <p class="text-center text-sm mt-4">
+-        <.link href={~p"/users/register"}>Register</.link>
+-        | <.link href={~p"/users/log_in"}>Log in</.link>
+-      </p>
+-    </div>
+-    """
+-  end
+-
+-  def mount(_params, _session, socket) do
+-    {:ok, assign(socket, form: to_form(%{}, as: "user"))}
+-  end
+-
+-  def handle_event("send_email", %{"user" => %{"email" => email}}, socket) do
+-    if user = Users.get_user_by_email(email) do
+-      Users.deliver_user_reset_password_instructions(
+-        user,
+-        &url(~p"/users/reset_password/#{&1}")
+-      )
+-    end
+-
+-    info =
+-      "If your email is in our system, you will receive instructions to reset your password shortly."
+-
+-    {:noreply,
+-     socket
+-     |> put_flash(:info, info)
+-     |> redirect(to: ~p"/")}
+-  end
+-end
+diff --git a/lib/amboseli_web/live/user_login_live.ex b/lib/amboseli_web/live/user_login_live.ex
+index 5537e20..65e1a62 100644
+--- a/lib/amboseli_web/live/user_login_live.ex
++++ b/lib/amboseli_web/live/user_login_live.ex
+@@ -1,43 +1,72 @@
+ defmodule AmboseliWeb.UserLoginLive do
+   use AmboseliWeb, :live_view
+ 
++  alias Amboseli.Users
++
++  def mount(_params, _session, socket) do
++    email = live_flash(socket.assigns.flash, :email)
++    form = to_form(%{"email" => email}, as: "user")
++
++    socket =
++      socket
++      |> assign(form: form)
++      |> assign(:status, :not_sent)
++
++    {:ok, socket, temporary_assigns: [form: form]}
++  end
++
+   def render(assigns) do
+     ~H"""
+-    <div class="mx-auto max-w-sm">
++    <div :if={@status == :not_sent} class="mx-auto max-w-md">
+       <.header class="text-center">
+-        Sign in to account
+-        <:subtitle>
+-          Don't have an account?
+-          <.link navigate={~p"/users/register"} class="font-semibold text-brand hover:underline">
+-            Sign up
+-          </.link>
+-          for an account now.
+-        </:subtitle>
++        Sign In to Your Account
++        <:subtitle>No password needed: we'll send you an email!</:subtitle>
+       </.header>
+ 
+-      <.simple_form for={@form} id="login_form" action={~p"/users/log_in"} phx-update="ignore">
++      <.simple_form
++        for={@form}
++        id="magic_link_form"
++        action={~p"/login"}
++        phx-update="ignore"
++        phx-submit="send-magic-link"
++        class="my-0 py-0"
++      >
+         <.input field={@form[:email]} type="email" label="Email" required />
+-        <.input field={@form[:password]} type="password" label="Password" required />
+-
+-        <:actions>
+-          <.input field={@form[:remember_me]} type="checkbox" label="Keep me logged in" />
+-          <.link href={~p"/users/reset_password"} class="text-sm font-semibold">
+-            Forgot your password?
+-          </.link>
+-        </:actions>
+         <:actions>
+-          <.button phx-disable-with="Signing in..." class="w-full">
+-            Sign in <span aria-hidden="true">→</span>
++          <.button
++            class="w-full flex place-content-center place-items-center gap-2"
++            phx-disable-with="Sending email..."
++          >
++            Send me a link <.icon name="hero-envelope" />
+           </.button>
+         </:actions>
+       </.simple_form>
+     </div>
++
++    <div :if={@status == :sent} class="mx-auto">
++      <.header class="text-center">
++        Check your email!
++        <:subtitle>
++          We sent you a link to sign in.
++        </:subtitle>
++      </.header>
++    </div>
+     """
+   end
+ 
+-  def mount(_params, _session, socket) do
+-    email = live_flash(socket.assigns.flash, :email)
+-    form = to_form(%{"email" => email}, as: "user")
+-    {:ok, assign(socket, form: form), temporary_assigns: [form: form]}
++  def handle_event("send-magic-link", params, socket) do
++    %{"user" => %{"email" => email}} = params
++
++    Users.login_or_register_user(email)
++
++    socket =
++      socket
++      |> Phoenix.LiveView.put_flash(
++        :info,
++        "We've sent an email to #{email}, with a one-time sign-in link."
++      )
++      |> assign(:status, :sent)
++
++    {:noreply, socket}
+   end
+ end
+diff --git a/lib/amboseli_web/live/user_registration_live.ex b/lib/amboseli_web/live/user_registration_live.ex
+deleted file mode 100644
+index e274216..0000000
+--- a/lib/amboseli_web/live/user_registration_live.ex
++++ /dev/null
+@@ -1,87 +0,0 @@
+-defmodule AmboseliWeb.UserRegistrationLive do
+-  use AmboseliWeb, :live_view
+-
+-  alias Amboseli.Users
+-  alias Amboseli.Users.User
+-
+-  def render(assigns) do
+-    ~H"""
+-    <div class="mx-auto max-w-sm">
+-      <.header class="text-center">
+-        Register for an account
+-        <:subtitle>
+-          Already registered?
+-          <.link navigate={~p"/users/log_in"} class="font-semibold text-brand hover:underline">
+-            Sign in
+-          </.link>
+-          to your account now.
+-        </:subtitle>
+-      </.header>
+-
+-      <.simple_form
+-        for={@form}
+-        id="registration_form"
+-        phx-submit="save"
+-        phx-change="validate"
+-        phx-trigger-action={@trigger_submit}
+-        action={~p"/users/log_in?_action=registered"}
+-        method="post"
+-      >
+-        <.error :if={@check_errors}>
+-          Oops, something went wrong! Please check the errors below.
+-        </.error>
+-
+-        <.input field={@form[:email]} type="email" label="Email" required />
+-        <.input field={@form[:password]} type="password" label="Password" required />
+-
+-        <:actions>
+-          <.button phx-disable-with="Creating account..." class="w-full">Create an account</.button>
+-        </:actions>
+-      </.simple_form>
+-    </div>
+-    """
+-  end
+-
+-  def mount(_params, _session, socket) do
+-    changeset = Users.change_user_registration(%User{})
+-
+-    socket =
+-      socket
+-      |> assign(trigger_submit: false, check_errors: false)
+-      |> assign_form(changeset)
+-
+-    {:ok, socket, temporary_assigns: [form: nil]}
+-  end
+-
+-  def handle_event("save", %{"user" => user_params}, socket) do
+-    case Users.register_user(user_params) do
+-      {:ok, user} ->
+-        {:ok, _} =
+-          Users.deliver_user_confirmation_instructions(
+-            user,
+-            &url(~p"/users/confirm/#{&1}")
+-          )
+-
+-        changeset = Users.change_user_registration(user)
+-        {:noreply, socket |> assign(trigger_submit: true) |> assign_form(changeset)}
+-
+-      {:error, %Ecto.Changeset{} = changeset} ->
+-        {:noreply, socket |> assign(check_errors: true) |> assign_form(changeset)}
+-    end
+-  end
+-
+-  def handle_event("validate", %{"user" => user_params}, socket) do
+-    changeset = Users.change_user_registration(%User{}, user_params)
+-    {:noreply, assign_form(socket, Map.put(changeset, :action, :validate))}
+-  end
+-
+-  defp assign_form(socket, %Ecto.Changeset{} = changeset) do
+-    form = to_form(changeset, as: "user")
+-
+-    if changeset.valid? do
+-      assign(socket, form: form, check_errors: false)
+-    else
+-      assign(socket, form: form)
+-    end
+-  end
+-end
+diff --git a/lib/amboseli_web/live/user_reset_password_live.ex b/lib/amboseli_web/live/user_reset_password_live.ex
+deleted file mode 100644
+index dd8a047..0000000
+--- a/lib/amboseli_web/live/user_reset_password_live.ex
++++ /dev/null
+@@ -1,89 +0,0 @@
+-defmodule AmboseliWeb.UserResetPasswordLive do
+-  use AmboseliWeb, :live_view
+-
+-  alias Amboseli.Users
+-
+-  def render(assigns) do
+-    ~H"""
+-    <div class="mx-auto max-w-sm">
+-      <.header class="text-center">Reset Password</.header>
+-
+-      <.simple_form
+-        for={@form}
+-        id="reset_password_form"
+-        phx-submit="reset_password"
+-        phx-change="validate"
+-      >
+-        <.error :if={@form.errors != []}>
+-          Oops, something went wrong! Please check the errors below.
+-        </.error>
+-
+-        <.input field={@form[:password]} type="password" label="New password" required />
+-        <.input
+-          field={@form[:password_confirmation]}
+-          type="password"
+-          label="Confirm new password"
+-          required
+-        />
+-        <:actions>
+-          <.button phx-disable-with="Resetting..." class="w-full">Reset Password</.button>
+-        </:actions>
+-      </.simple_form>
+-
+-      <p class="text-center text-sm mt-4">
+-        <.link href={~p"/users/register"}>Register</.link>
+-        | <.link href={~p"/users/log_in"}>Log in</.link>
+-      </p>
+-    </div>
+-    """
+-  end
+-
+-  def mount(params, _session, socket) do
+-    socket = assign_user_and_token(socket, params)
+-
+-    form_source =
+-      case socket.assigns do
+-        %{user: user} ->
+-          Users.change_user_password(user)
+-
+-        _ ->
+-          %{}
+-      end
+-
+-    {:ok, assign_form(socket, form_source), temporary_assigns: [form: nil]}
+-  end
+-
+-  # Do not log in the user after reset password to avoid a
+-  # leaked token giving the user access to the account.
+-  def handle_event("reset_password", %{"user" => user_params}, socket) do
+-    case Users.reset_user_password(socket.assigns.user, user_params) do
+-      {:ok, _} ->
+-        {:noreply,
+-         socket
+-         |> put_flash(:info, "Password reset successfully.")
+-         |> redirect(to: ~p"/users/log_in")}
+-
+-      {:error, changeset} ->
+-        {:noreply, assign_form(socket, Map.put(changeset, :action, :insert))}
+-    end
+-  end
+-
+-  def handle_event("validate", %{"user" => user_params}, socket) do
+-    changeset = Users.change_user_password(socket.assigns.user, user_params)
+-    {:noreply, assign_form(socket, Map.put(changeset, :action, :validate))}
+-  end
+-
+-  defp assign_user_and_token(socket, %{"token" => token}) do
+-    if user = Users.get_user_by_reset_password_token(token) do
+-      assign(socket, user: user, token: token)
+-    else
+-      socket
+-      |> put_flash(:error, "Reset password link is invalid or it has expired.")
+-      |> redirect(to: ~p"/")
+-    end
+-  end
+-
+-  defp assign_form(socket, %{} = source) do
+-    assign(socket, :form, to_form(source, as: "user"))
+-  end
+-end
+diff --git a/lib/amboseli_web/live/user_settings_live.ex b/lib/amboseli_web/live/user_settings_live.ex
+index 09b2835..e9d0b36 100644
+--- a/lib/amboseli_web/live/user_settings_live.ex
++++ b/lib/amboseli_web/live/user_settings_live.ex
+@@ -7,7 +7,7 @@ defmodule AmboseliWeb.UserSettingsLive do
+     ~H"""
+     <.header class="text-center">
+       Account Settings
+-      <:subtitle>Manage your account email address and password settings</:subtitle>
++      <:subtitle>Manage your account settings</:subtitle>
+     </.header>
+ 
+     <div class="space-y-12 divide-y">
+@@ -18,57 +18,16 @@ defmodule AmboseliWeb.UserSettingsLive do
+           phx-submit="update_email"
+           phx-change="validate_email"
+         >
+-          <.input field={@email_form[:email]} type="email" label="Email" required />
+-          <.input
+-            field={@email_form[:current_password]}
+-            name="current_password"
+-            id="current_password_for_email"
+-            type="password"
+-            label="Current password"
+-            value={@email_form_current_password}
+-            required
+-          />
++          <div>
++            <div class="block text-sm font-semibold leading-6 text-zinc-800">Current Email</div>
++            <div class="text-sm"><%= @current_user.email %></div>
++          </div>
++          <.input field={@email_form[:email]} type="email" label="New Email" required />
+           <:actions>
+             <.button phx-disable-with="Changing...">Change Email</.button>
+           </:actions>
+         </.simple_form>
+       </div>
+-      <div>
+-        <.simple_form
+-          for={@password_form}
+-          id="password_form"
+-          action={~p"/users/log_in?_action=password_updated"}
+-          method="post"
+-          phx-change="validate_password"
+-          phx-submit="update_password"
+-          phx-trigger-action={@trigger_submit}
+-        >
+-          <.input
+-            field={@password_form[:email]}
+-            type="hidden"
+-            id="hidden_user_email"
+-            value={@current_email}
+-          />
+-          <.input field={@password_form[:password]} type="password" label="New password" required />
+-          <.input
+-            field={@password_form[:password_confirmation]}
+-            type="password"
+-            label="Confirm new password"
+-          />
+-          <.input
+-            field={@password_form[:current_password]}
+-            name="current_password"
+-            type="password"
+-            label="Current password"
+-            id="current_password_for_password"
+-            value={@current_password}
+-            required
+-          />
+-          <:actions>
+-            <.button phx-disable-with="Changing...">Change Password</.button>
+-          </:actions>
+-        </.simple_form>
+-      </div>
+     </div>
+     """
+   end
+@@ -83,28 +42,24 @@ defmodule AmboseliWeb.UserSettingsLive do
+           put_flash(socket, :error, "Email change link is invalid or it has expired.")
+       end
+ 
+-    {:ok, push_navigate(socket, to: ~p"/users/settings")}
++    {:ok, push_navigate(socket, to: ~p"/account")}
+   end
+ 
+   def mount(_params, _session, socket) do
+     user = socket.assigns.current_user
+     email_changeset = Users.change_user_email(user)
+-    password_changeset = Users.change_user_password(user)
+ 
+     socket =
+       socket
+-      |> assign(:current_password, nil)
+-      |> assign(:email_form_current_password, nil)
+       |> assign(:current_email, user.email)
+       |> assign(:email_form, to_form(email_changeset))
+-      |> assign(:password_form, to_form(password_changeset))
+       |> assign(:trigger_submit, false)
+ 
+     {:ok, socket}
+   end
+ 
+   def handle_event("validate_email", params, socket) do
+-    %{"current_password" => password, "user" => user_params} = params
++    %{"user" => user_params} = params
+ 
+     email_form =
+       socket.assigns.current_user
+@@ -112,56 +67,26 @@ defmodule AmboseliWeb.UserSettingsLive do
+       |> Map.put(:action, :validate)
+       |> to_form()
+ 
+-    {:noreply, assign(socket, email_form: email_form, email_form_current_password: password)}
++    {:noreply, assign(socket, email_form: email_form)}
+   end
+ 
+   def handle_event("update_email", params, socket) do
+-    %{"current_password" => password, "user" => user_params} = params
++    %{"user" => user_params} = params
+     user = socket.assigns.current_user
+ 
+-    case Users.apply_user_email(user, password, user_params) do
++    case Users.apply_user_email(user, user_params) do
+       {:ok, applied_user} ->
+         Users.deliver_user_update_email_instructions(
+           applied_user,
+           user.email,
+-          &url(~p"/users/settings/confirm_email/#{&1}")
++          &url(~p"/account/confirm_email/#{&1}")
+         )
+ 
+         info = "A link to confirm your email change has been sent to the new address."
+-        {:noreply, socket |> put_flash(:info, info) |> assign(email_form_current_password: nil)}
++        {:noreply, socket |> put_flash(:info, info)}
+ 
+       {:error, changeset} ->
+         {:noreply, assign(socket, :email_form, to_form(Map.put(changeset, :action, :insert)))}
+     end
+   end
+-
+-  def handle_event("validate_password", params, socket) do
+-    %{"current_password" => password, "user" => user_params} = params
+-
+-    password_form =
+-      socket.assigns.current_user
+-      |> Users.change_user_password(user_params)
+-      |> Map.put(:action, :validate)
+-      |> to_form()
+-
+-    {:noreply, assign(socket, password_form: password_form, current_password: password)}
+-  end
+-
+-  def handle_event("update_password", params, socket) do
+-    %{"current_password" => password, "user" => user_params} = params
+-    user = socket.assigns.current_user
+-
+-    case Users.update_user_password(user, password, user_params) do
+-      {:ok, user} ->
+-        password_form =
+-          user
+-          |> Users.change_user_password(user_params)
+-          |> to_form()
+-
+-        {:noreply, assign(socket, trigger_submit: true, password_form: password_form)}
+-
+-      {:error, changeset} ->
+-        {:noreply, assign(socket, password_form: to_form(changeset))}
+-    end
+-  end
+ end
+diff --git a/lib/amboseli_web/router.ex b/lib/amboseli_web/router.ex
+index df8e9c7..e6c6139 100644
+--- a/lib/amboseli_web/router.ex
++++ b/lib/amboseli_web/router.ex
+@@ -30,7 +30,6 @@ defmodule AmboseliWeb.Router do
+ 
+   # Enable Swoosh mailbox preview in development
+   if Application.compile_env(:amboseli, :dev_routes) do
+-
+     scope "/dev" do
+       pipe_through :browser
+ 
+@@ -45,13 +44,12 @@ defmodule AmboseliWeb.Router do
+ 
+     live_session :redirect_if_user_is_authenticated,
+       on_mount: [{AmboseliWeb.UserAuth, :redirect_if_user_is_authenticated}] do
+-      live "/users/register", UserRegistrationLive, :new
+-      live "/users/log_in", UserLoginLive, :new
+-      live "/users/reset_password", UserForgotPasswordLive, :new
+-      live "/users/reset_password/:token", UserResetPasswordLive, :edit
++      live "/login", UserLoginLive, :new
+     end
+ 
+-    post "/users/log_in", UserSessionController, :create
++    post "/login", UserSessionController, :send_magic_link
++
++    get "/login/email/token/:token", UserSessionController, :login_with_token
+   end
+ 
+   scope "/", AmboseliWeb do
+@@ -59,20 +57,14 @@ defmodule AmboseliWeb.Router do
+ 
+     live_session :require_authenticated_user,
+       on_mount: [{AmboseliWeb.UserAuth, :ensure_authenticated}] do
+-      live "/users/settings", UserSettingsLive, :edit
+-      live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
++      live "/account", UserSettingsLive, :edit
++      live "/account/confirm_email/:token", UserSettingsLive, :confirm_email
+     end
+   end
+ 
+   scope "/", AmboseliWeb do
+     pipe_through [:browser]
+ 
+-    delete "/users/log_out", UserSessionController, :delete
+-
+-    live_session :current_user,
+-      on_mount: [{AmboseliWeb.UserAuth, :mount_current_user}] do
+-      live "/users/confirm/:token", UserConfirmationLive, :edit
+-      live "/users/confirm", UserConfirmationInstructionsLive, :new
+-    end
++    delete "/logout", UserSessionController, :delete
+   end
+ end
+diff --git a/lib/amboseli_web/user_auth.ex b/lib/amboseli_web/user_auth.ex
+index dc63b86..d9e15cc 100644
+--- a/lib/amboseli_web/user_auth.ex
++++ b/lib/amboseli_web/user_auth.ex
+@@ -25,7 +25,7 @@ defmodule AmboseliWeb.UserAuth do
+   disconnected on log out. The line can be safely removed
+   if you are not using LiveView.
+   """
+-  def log_in_user(conn, user, params \\ %{}) do
++  def login_user(conn, user, params \\ %{}) do
+     token = Users.generate_user_session_token(user)
+     user_return_to = get_session(conn, :user_return_to)
+ 
+@@ -156,7 +156,7 @@ defmodule AmboseliWeb.UserAuth do
+       socket =
+         socket
+         |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+-        |> Phoenix.LiveView.redirect(to: ~p"/users/log_in")
++        |> Phoenix.LiveView.redirect(to: ~p"/login")
+ 
+       {:halt, socket}
+     end
+@@ -206,7 +206,7 @@ defmodule AmboseliWeb.UserAuth do
+       conn
+       |> put_flash(:error, "You must log in to access this page.")
+       |> maybe_store_return_to()
+-      |> redirect(to: ~p"/users/log_in")
++      |> redirect(to: ~p"/login")
+       |> halt()
+     end
+   end
+diff --git a/mix.exs b/mix.exs
+index 7ded7ed..6504459 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -40,7 +40,7 @@ defmodule Amboseli.MixProject do
+       {:phoenix_html, "~> 3.3"},
+       {:phoenix_live_reload, "~> 1.2", only: :dev},
+       {:phoenix_live_view, "~> 0.20.1"},
+-      {:floki, ">= 0.30.0", only: :test},
++      {:floki, ">= 0.30.0"},
+       {:esbuild, "~> 0.7", runtime: Mix.env() == :dev},
+       {:tailwind, "~> 0.2.0", runtime: Mix.env() == :dev},
+       {:swoosh, "~> 1.3"},
+diff --git a/priv/repo/migrations/20231215213319_remove_password_from_users.exs.exs b/priv/repo/migrations/20231215213319_remove_password_from_users.exs.exs
+new file mode 100644
+index 0000000..b1d2bc0
+--- /dev/null
++++ b/priv/repo/migrations/20231215213319_remove_password_from_users.exs.exs
+@@ -0,0 +1,9 @@
++defmodule Amboseli.Repo.Migrations.RemovePasswordFromUsers do
++  use Ecto.Migration
++
++  def change do
++    alter table(:users) do
++      remove :hashed_password
++    end
++  end
++end
+diff --git a/test/amboseli/users_test.exs b/test/amboseli/users_test.exs
+index 13696c7..28d2e6c 100644
+--- a/test/amboseli/users_test.exs
++++ b/test/amboseli/users_test.exs
+@@ -17,24 +17,6 @@ defmodule Amboseli.UsersTest do
+     end
+   end
+ 
+-  describe "get_user_by_email_and_password/2" do
+-    test "does not return the user if the email does not exist" do
+-      refute Users.get_user_by_email_and_password("unknown@amboseli.com", "hello world!")
+-    end
+-
+-    test "does not return the user if the password is not valid" do
+-      user = user_fixture()
+-      refute Users.get_user_by_email_and_password(user.email, "invalid")
+-    end
+-
+-    test "returns the user if the email and password are valid" do
+-      %{id: id} = user = user_fixture()
+-
+-      assert %User{id: ^id} =
+-               Users.get_user_by_email_and_password(user.email, valid_user_password())
+-    end
+-  end
+-
+   describe "get_user!/1" do
+     test "raises if id is invalid" do
+       assert_raise Ecto.NoResultsError, fn ->
+@@ -49,29 +31,26 @@ defmodule Amboseli.UsersTest do
+   end
+ 
+   describe "register_user/1" do
+-    test "requires email and password to be set" do
++    test "requires email to be set" do
+       {:error, changeset} = Users.register_user(%{})
+ 
+       assert %{
+-               password: ["can't be blank"],
+                email: ["can't be blank"]
+              } = errors_on(changeset)
+     end
+ 
+-    test "validates email and password when given" do
+-      {:error, changeset} = Users.register_user(%{email: "not valid", password: "not valid"})
++    test "validates email when given" do
++      {:error, changeset} = Users.register_user(%{email: "not valid"})
+ 
+       assert %{
+-               email: ["must have the @ sign and no spaces"],
+-               password: ["should be at least 12 character(s)"]
++               email: ["must have the @ sign and no spaces"]
+              } = errors_on(changeset)
+     end
+ 
+-    test "validates maximum values for email and password for security" do
++    test "validates maximum values for email for security" do
+       too_long = String.duplicate("db", 100)
+-      {:error, changeset} = Users.register_user(%{email: too_long, password: too_long})
++      {:error, changeset} = Users.register_user(%{email: too_long})
+       assert "should be at most 160 character(s)" in errors_on(changeset).email
+-      assert "should be at most 72 character(s)" in errors_on(changeset).password
+     end
+ 
+     test "validates email uniqueness" do
+@@ -84,36 +63,11 @@ defmodule Amboseli.UsersTest do
+       assert "has already been taken" in errors_on(changeset).email
+     end
+ 
+-    test "registers users with a hashed password" do
++    test "registers users" do
+       email = unique_user_email()
+       {:ok, user} = Users.register_user(valid_user_attributes(email: email))
+       assert user.email == email
+-      assert is_binary(user.hashed_password)
+       assert is_nil(user.confirmed_at)
+-      assert is_nil(user.password)
+-    end
+-  end
+-
+-  describe "change_user_registration/2" do
+-    test "returns a changeset" do
+-      assert %Ecto.Changeset{} = changeset = Users.change_user_registration(%User{})
+-      assert changeset.required == [:password, :email]
+-    end
+-
+-    test "allows fields to be set" do
+-      email = unique_user_email()
+-      password = valid_user_password()
+-
+-      changeset =
+-        Users.change_user_registration(
+-          %User{},
+-          valid_user_attributes(email: email, password: password)
+-        )
+-
+-      assert changeset.valid?
+-      assert get_change(changeset, :email) == email
+-      assert get_change(changeset, :password) == password
+-      assert is_nil(get_change(changeset, :hashed_password))
+     end
+   end
+ 
+@@ -130,13 +84,13 @@ defmodule Amboseli.UsersTest do
+     end
+ 
+     test "requires email to change", %{user: user} do
+-      {:error, changeset} = Users.apply_user_email(user, valid_user_password(), %{})
++      {:error, changeset} = Users.apply_user_email(user, %{})
+       assert %{email: ["did not change"]} = errors_on(changeset)
+     end
+ 
+     test "validates email", %{user: user} do
+       {:error, changeset} =
+-        Users.apply_user_email(user, valid_user_password(), %{email: "not valid"})
++        Users.apply_user_email(user, %{email: "not valid"})
+ 
+       assert %{email: ["must have the @ sign and no spaces"]} = errors_on(changeset)
+     end
+@@ -145,30 +99,22 @@ defmodule Amboseli.UsersTest do
+       too_long = String.duplicate("db", 100)
+ 
+       {:error, changeset} =
+-        Users.apply_user_email(user, valid_user_password(), %{email: too_long})
++        Users.apply_user_email(user, %{email: too_long})
+ 
+       assert "should be at most 160 character(s)" in errors_on(changeset).email
+     end
+ 
+     test "validates email uniqueness", %{user: user} do
+       %{email: email} = user_fixture()
+-      password = valid_user_password()
+ 
+-      {:error, changeset} = Users.apply_user_email(user, password, %{email: email})
++      {:error, changeset} = Users.apply_user_email(user, %{email: email})
+ 
+       assert "has already been taken" in errors_on(changeset).email
+     end
+ 
+-    test "validates current password", %{user: user} do
+-      {:error, changeset} =
+-        Users.apply_user_email(user, "invalid", %{email: unique_user_email()})
+-
+-      assert %{current_password: ["is not valid"]} = errors_on(changeset)
+-    end
+-
+     test "applies the email without persisting it", %{user: user} do
+       email = unique_user_email()
+-      {:ok, user} = Users.apply_user_email(user, valid_user_password(), %{email: email})
++      {:ok, user} = Users.apply_user_email(user, %{email: email})
+       assert user.email == email
+       assert Users.get_user!(user.id).email != email
+     end
+@@ -236,80 +182,6 @@ defmodule Amboseli.UsersTest do
+     end
+   end
+ 
+-  describe "change_user_password/2" do
+-    test "returns a user changeset" do
+-      assert %Ecto.Changeset{} = changeset = Users.change_user_password(%User{})
+-      assert changeset.required == [:password]
+-    end
+-
+-    test "allows fields to be set" do
+-      changeset =
+-        Users.change_user_password(%User{}, %{
+-          "password" => "new valid password"
+-        })
+-
+-      assert changeset.valid?
+-      assert get_change(changeset, :password) == "new valid password"
+-      assert is_nil(get_change(changeset, :hashed_password))
+-    end
+-  end
+-
+-  describe "update_user_password/3" do
+-    setup do
+-      %{user: user_fixture()}
+-    end
+-
+-    test "validates password", %{user: user} do
+-      {:error, changeset} =
+-        Users.update_user_password(user, valid_user_password(), %{
+-          password: "not valid",
+-          password_confirmation: "another"
+-        })
+-
+-      assert %{
+-               password: ["should be at least 12 character(s)"],
+-               password_confirmation: ["does not match password"]
+-             } = errors_on(changeset)
+-    end
+-
+-    test "validates maximum values for password for security", %{user: user} do
+-      too_long = String.duplicate("db", 100)
+-
+-      {:error, changeset} =
+-        Users.update_user_password(user, valid_user_password(), %{password: too_long})
+-
+-      assert "should be at most 72 character(s)" in errors_on(changeset).password
+-    end
+-
+-    test "validates current password", %{user: user} do
+-      {:error, changeset} =
+-        Users.update_user_password(user, "invalid", %{password: valid_user_password()})
+-
+-      assert %{current_password: ["is not valid"]} = errors_on(changeset)
+-    end
+-
+-    test "updates the password", %{user: user} do
+-      {:ok, user} =
+-        Users.update_user_password(user, valid_user_password(), %{
+-          password: "new valid password"
+-        })
+-
+-      assert is_nil(user.password)
+-      assert Users.get_user_by_email_and_password(user.email, "new valid password")
+-    end
+-
+-    test "deletes all tokens for the given user", %{user: user} do
+-      _ = Users.generate_user_session_token(user)
+-
+-      {:ok, _} =
+-        Users.update_user_password(user, valid_user_password(), %{
+-          password: "new valid password"
+-        })
+-
+-      refute Repo.get_by(UserToken, user_id: user.id)
+-    end
+-  end
+-
+   describe "generate_user_session_token/1" do
+     setup do
+       %{user: user_fixture()}
+@@ -361,148 +233,4 @@ defmodule Amboseli.UsersTest do
+       refute Users.get_user_by_session_token(token)
+     end
+   end
+-
+-  describe "deliver_user_confirmation_instructions/2" do
+-    setup do
+-      %{user: user_fixture()}
+-    end
+-
+-    test "sends token through notification", %{user: user} do
+-      token =
+-        extract_user_token(fn url ->
+-          Users.deliver_user_confirmation_instructions(user, url)
+-        end)
+-
+-      {:ok, token} = Base.url_decode64(token, padding: false)
+-      assert user_token = Repo.get_by(UserToken, token: :crypto.hash(:sha256, token))
+-      assert user_token.user_id == user.id
+-      assert user_token.sent_to == user.email
+-      assert user_token.context == "confirm"
+-    end
+-  end
+-
+-  describe "confirm_user/1" do
+-    setup do
+-      user = user_fixture()
+-
+-      token =
+-        extract_user_token(fn url ->
+-          Users.deliver_user_confirmation_instructions(user, url)
+-        end)
+-
+-      %{user: user, token: token}
+-    end
+-
+-    test "confirms the email with a valid token", %{user: user, token: token} do
+-      assert {:ok, confirmed_user} = Users.confirm_user(token)
+-      assert confirmed_user.confirmed_at
+-      assert confirmed_user.confirmed_at != user.confirmed_at
+-      assert Repo.get!(User, user.id).confirmed_at
+-      refute Repo.get_by(UserToken, user_id: user.id)
+-    end
+-
+-    test "does not confirm with invalid token", %{user: user} do
+-      assert Users.confirm_user("oops") == :error
+-      refute Repo.get!(User, user.id).confirmed_at
+-      assert Repo.get_by(UserToken, user_id: user.id)
+-    end
+-
+-    test "does not confirm email if token expired", %{user: user, token: token} do
+-      {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
+-      assert Users.confirm_user(token) == :error
+-      refute Repo.get!(User, user.id).confirmed_at
+-      assert Repo.get_by(UserToken, user_id: user.id)
+-    end
+-  end
+-
+-  describe "deliver_user_reset_password_instructions/2" do
+-    setup do
+-      %{user: user_fixture()}
+-    end
+-
+-    test "sends token through notification", %{user: user} do
+-      token =
+-        extract_user_token(fn url ->
+-          Users.deliver_user_reset_password_instructions(user, url)
+-        end)
+-
+-      {:ok, token} = Base.url_decode64(token, padding: false)
+-      assert user_token = Repo.get_by(UserToken, token: :crypto.hash(:sha256, token))
+-      assert user_token.user_id == user.id
+-      assert user_token.sent_to == user.email
+-      assert user_token.context == "reset_password"
+-    end
+-  end
+-
+-  describe "get_user_by_reset_password_token/1" do
+-    setup do
+-      user = user_fixture()
+-
+-      token =
+-        extract_user_token(fn url ->
+-          Users.deliver_user_reset_password_instructions(user, url)
+-        end)
+-
+-      %{user: user, token: token}
+-    end
+-
+-    test "returns the user with valid token", %{user: %{id: id}, token: token} do
+-      assert %User{id: ^id} = Users.get_user_by_reset_password_token(token)
+-      assert Repo.get_by(UserToken, user_id: id)
+-    end
+-
+-    test "does not return the user with invalid token", %{user: user} do
+-      refute Users.get_user_by_reset_password_token("oops")
+-      assert Repo.get_by(UserToken, user_id: user.id)
+-    end
+-
+-    test "does not return the user if token expired", %{user: user, token: token} do
+-      {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
+-      refute Users.get_user_by_reset_password_token(token)
+-      assert Repo.get_by(UserToken, user_id: user.id)
+-    end
+-  end
+-
+-  describe "reset_user_password/2" do
+-    setup do
+-      %{user: user_fixture()}
+-    end
+-
+-    test "validates password", %{user: user} do
+-      {:error, changeset} =
+-        Users.reset_user_password(user, %{
+-          password: "not valid",
+-          password_confirmation: "another"
+-        })
+-
+-      assert %{
+-               password: ["should be at least 12 character(s)"],
+-               password_confirmation: ["does not match password"]
+-             } = errors_on(changeset)
+-    end
+-
+-    test "validates maximum values for password for security", %{user: user} do
+-      too_long = String.duplicate("db", 100)
+-      {:error, changeset} = Users.reset_user_password(user, %{password: too_long})
+-      assert "should be at most 72 character(s)" in errors_on(changeset).password
+-    end
+-
+-    test "updates the password", %{user: user} do
+-      {:ok, updated_user} = Users.reset_user_password(user, %{password: "new valid password"})
+-      assert is_nil(updated_user.password)
+-      assert Users.get_user_by_email_and_password(user.email, "new valid password")
+-    end
+-
+-    test "deletes all tokens for the given user", %{user: user} do
+-      _ = Users.generate_user_session_token(user)
+-      {:ok, _} = Users.reset_user_password(user, %{password: "new valid password"})
+-      refute Repo.get_by(UserToken, user_id: user.id)
+-    end
+-  end
+-
+-  describe "inspect/2 for the User module" do
+-    test "does not include password" do
+-      refute inspect(%User{password: "123456"}) =~ "password: \"123456\""
+-    end
+-  end
+ end
+diff --git a/test/amboseli_web/controllers/user_session_controller_test.exs b/test/amboseli_web/controllers/user_session_controller_test.exs
+index a17ea95..3f70e54 100644
+--- a/test/amboseli_web/controllers/user_session_controller_test.exs
++++ b/test/amboseli_web/controllers/user_session_controller_test.exs
+@@ -3,108 +3,64 @@ defmodule AmboseliWeb.UserSessionControllerTest do
+ 
+   import Amboseli.UsersFixtures
+ 
++  alias Amboseli.Repo
++
+   setup do
+     %{user: user_fixture()}
+   end
+ 
+-  describe "POST /users/log_in" do
+-    test "logs the user in", %{conn: conn, user: user} do
+-      conn =
+-        post(conn, ~p"/users/log_in", %{
+-          "user" => %{"email" => user.email, "password" => valid_user_password()}
+-        })
++  defp create_login_token(user) do
++    {email_token, token} = Amboseli.Users.UserToken.build_email_token(user, "magic_link")
+ 
+-      assert get_session(conn, :user_token)
+-      assert redirected_to(conn) == ~p"/"
++    Repo.insert!(token)
+ 
+-      # Now do a logged in request and assert on the menu
+-      conn = get(conn, ~p"/")
+-      response = html_response(conn, 200)
+-      assert response =~ user.email
+-      assert response =~ ~p"/users/settings"
+-      assert response =~ ~p"/users/log_out"
+-    end
++    email_token
++  end
+ 
+-    test "logs the user in with remember me", %{conn: conn, user: user} do
++  describe "POST /login (sending magic link)" do
++    test "sends a link", %{conn: conn, user: user} do
+       conn =
+-        post(conn, ~p"/users/log_in", %{
+-          "user" => %{
+-            "email" => user.email,
+-            "password" => valid_user_password(),
+-            "remember_me" => "true"
+-          }
++        post(conn, ~p"/login", %{
++          "user" => %{"email" => user.email}
+         })
+ 
+-      assert conn.resp_cookies["_amboseli_web_user_remember_me"]
+-      assert redirected_to(conn) == ~p"/"
+-    end
++      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
++               "We've sent an email to #{user.email}, with a one-time sign-in link."
+ 
+-    test "logs the user in with return to", %{conn: conn, user: user} do
+-      conn =
+-        conn
+-        |> init_test_session(user_return_to: "/foo/bar")
+-        |> post(~p"/users/log_in", %{
+-          "user" => %{
+-            "email" => user.email,
+-            "password" => valid_user_password()
+-          }
+-        })
+-
+-      assert redirected_to(conn) == "/foo/bar"
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Welcome back!"
++      assert Repo.get_by!(Amboseli.Users.UserToken, user_id: user.id).context ==
++               "magic_link"
+     end
++  end
+ 
+-    test "login following registration", %{conn: conn, user: user} do
+-      conn =
+-        conn
+-        |> post(~p"/users/log_in", %{
+-          "_action" => "registered",
+-          "user" => %{
+-            "email" => user.email,
+-            "password" => valid_user_password()
+-          }
+-        })
+-
+-      assert redirected_to(conn) == ~p"/"
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Account created successfully"
+-    end
++  describe "POST /login/email/token/:token (logging in with magic link)" do
++    test "logs the user in", %{conn: conn, user: user} do
++      token = create_login_token(user)
+ 
+-    test "login following password update", %{conn: conn, user: user} do
+       conn =
+-        conn
+-        |> post(~p"/users/log_in", %{
+-          "_action" => "password_updated",
+-          "user" => %{
+-            "email" => user.email,
+-            "password" => valid_user_password()
+-          }
+-        })
+-
+-      assert redirected_to(conn) == ~p"/users/settings"
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Password updated successfully"
+-    end
++        get(conn, ~p"/login/email/token/#{token}")
+ 
+-    test "redirects to login page with invalid credentials", %{conn: conn} do
+-      conn =
+-        post(conn, ~p"/users/log_in", %{
+-          "user" => %{"email" => "invalid@email.com", "password" => "invalid_password"}
+-        })
++      assert redirected_to(conn) == ~p"/"
++      assert get_session(conn, :user_token)
+ 
+-      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Invalid email or password"
+-      assert redirected_to(conn) == ~p"/users/log_in"
++      # Now do a logged in request and assert on the menu
++      conn = get(conn, ~p"/")
++      response = html_response(conn, 200)
++      assert response =~ user.email
++      assert response =~ ~p"/account"
++      assert response =~ ~p"/logout"
+     end
+   end
+ 
+-  describe "DELETE /users/log_out" do
++  describe "DELETE /logout" do
+     test "logs the user out", %{conn: conn, user: user} do
+-      conn = conn |> log_in_user(user) |> delete(~p"/users/log_out")
++      conn = conn |> login_user(user) |> delete(~p"/logout")
+       assert redirected_to(conn) == ~p"/"
+       refute get_session(conn, :user_token)
+       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"
+     end
+ 
+     test "succeeds even if the user is not logged in", %{conn: conn} do
+-      conn = delete(conn, ~p"/users/log_out")
++      conn = delete(conn, ~p"/logout")
+       assert redirected_to(conn) == ~p"/"
+       refute get_session(conn, :user_token)
+       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"
+diff --git a/test/amboseli_web/live/user_confirmation_instructions_live_test.exs b/test/amboseli_web/live/user_confirmation_instructions_live_test.exs
+deleted file mode 100644
+index ec40404..0000000
+--- a/test/amboseli_web/live/user_confirmation_instructions_live_test.exs
++++ /dev/null
+@@ -1,67 +0,0 @@
+-defmodule AmboseliWeb.UserConfirmationInstructionsLiveTest do
+-  use AmboseliWeb.ConnCase
+-
+-  import Phoenix.LiveViewTest
+-  import Amboseli.UsersFixtures
+-
+-  alias Amboseli.Users
+-  alias Amboseli.Repo
+-
+-  setup do
+-    %{user: user_fixture()}
+-  end
+-
+-  describe "Resend confirmation" do
+-    test "renders the resend confirmation page", %{conn: conn} do
+-      {:ok, _lv, html} = live(conn, ~p"/users/confirm")
+-      assert html =~ "Resend confirmation instructions"
+-    end
+-
+-    test "sends a new confirmation token", %{conn: conn, user: user} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/confirm")
+-
+-      {:ok, conn} =
+-        lv
+-        |> form("#resend_confirmation_form", user: %{email: user.email})
+-        |> render_submit()
+-        |> follow_redirect(conn, ~p"/")
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
+-               "If your email is in our system"
+-
+-      assert Repo.get_by!(Users.UserToken, user_id: user.id).context == "confirm"
+-    end
+-
+-    test "does not send confirmation token if user is confirmed", %{conn: conn, user: user} do
+-      Repo.update!(Users.User.confirm_changeset(user))
+-
+-      {:ok, lv, _html} = live(conn, ~p"/users/confirm")
+-
+-      {:ok, conn} =
+-        lv
+-        |> form("#resend_confirmation_form", user: %{email: user.email})
+-        |> render_submit()
+-        |> follow_redirect(conn, ~p"/")
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
+-               "If your email is in our system"
+-
+-      refute Repo.get_by(Users.UserToken, user_id: user.id)
+-    end
+-
+-    test "does not send confirmation token if email is invalid", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/confirm")
+-
+-      {:ok, conn} =
+-        lv
+-        |> form("#resend_confirmation_form", user: %{email: "unknown@amboseli.com"})
+-        |> render_submit()
+-        |> follow_redirect(conn, ~p"/")
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
+-               "If your email is in our system"
+-
+-      assert Repo.all(Users.UserToken) == []
+-    end
+-  end
+-end
+diff --git a/test/amboseli_web/live/user_confirmation_live_test.exs b/test/amboseli_web/live/user_confirmation_live_test.exs
+deleted file mode 100644
+index 53bbc3c..0000000
+--- a/test/amboseli_web/live/user_confirmation_live_test.exs
++++ /dev/null
+@@ -1,89 +0,0 @@
+-defmodule AmboseliWeb.UserConfirmationLiveTest do
+-  use AmboseliWeb.ConnCase
+-
+-  import Phoenix.LiveViewTest
+-  import Amboseli.UsersFixtures
+-
+-  alias Amboseli.Users
+-  alias Amboseli.Repo
+-
+-  setup do
+-    %{user: user_fixture()}
+-  end
+-
+-  describe "Confirm user" do
+-    test "renders confirmation page", %{conn: conn} do
+-      {:ok, _lv, html} = live(conn, ~p"/users/confirm/some-token")
+-      assert html =~ "Confirm Account"
+-    end
+-
+-    test "confirms the given token once", %{conn: conn, user: user} do
+-      token =
+-        extract_user_token(fn url ->
+-          Users.deliver_user_confirmation_instructions(user, url)
+-        end)
+-
+-      {:ok, lv, _html} = live(conn, ~p"/users/confirm/#{token}")
+-
+-      result =
+-        lv
+-        |> form("#confirmation_form")
+-        |> render_submit()
+-        |> follow_redirect(conn, "/")
+-
+-      assert {:ok, conn} = result
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
+-               "User confirmed successfully"
+-
+-      assert Users.get_user!(user.id).confirmed_at
+-      refute get_session(conn, :user_token)
+-      assert Repo.all(Users.UserToken) == []
+-
+-      # when not logged in
+-      {:ok, lv, _html} = live(conn, ~p"/users/confirm/#{token}")
+-
+-      result =
+-        lv
+-        |> form("#confirmation_form")
+-        |> render_submit()
+-        |> follow_redirect(conn, "/")
+-
+-      assert {:ok, conn} = result
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
+-               "User confirmation link is invalid or it has expired"
+-
+-      # when logged in
+-      conn =
+-        build_conn()
+-        |> log_in_user(user)
+-
+-      {:ok, lv, _html} = live(conn, ~p"/users/confirm/#{token}")
+-
+-      result =
+-        lv
+-        |> form("#confirmation_form")
+-        |> render_submit()
+-        |> follow_redirect(conn, "/")
+-
+-      assert {:ok, conn} = result
+-      refute Phoenix.Flash.get(conn.assigns.flash, :error)
+-    end
+-
+-    test "does not confirm email with invalid token", %{conn: conn, user: user} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/confirm/invalid-token")
+-
+-      {:ok, conn} =
+-        lv
+-        |> form("#confirmation_form")
+-        |> render_submit()
+-        |> follow_redirect(conn, ~p"/")
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
+-               "User confirmation link is invalid or it has expired"
+-
+-      refute Users.get_user!(user.id).confirmed_at
+-    end
+-  end
+-end
+diff --git a/test/amboseli_web/live/user_forgot_password_live_test.exs b/test/amboseli_web/live/user_forgot_password_live_test.exs
+deleted file mode 100644
+index 35a551e..0000000
+--- a/test/amboseli_web/live/user_forgot_password_live_test.exs
++++ /dev/null
+@@ -1,63 +0,0 @@
+-defmodule AmboseliWeb.UserForgotPasswordLiveTest do
+-  use AmboseliWeb.ConnCase
+-
+-  import Phoenix.LiveViewTest
+-  import Amboseli.UsersFixtures
+-
+-  alias Amboseli.Users
+-  alias Amboseli.Repo
+-
+-  describe "Forgot password page" do
+-    test "renders email page", %{conn: conn} do
+-      {:ok, lv, html} = live(conn, ~p"/users/reset_password")
+-
+-      assert html =~ "Forgot your password?"
+-      assert has_element?(lv, ~s|a[href="#{~p"/users/register"}"]|, "Register")
+-      assert has_element?(lv, ~s|a[href="#{~p"/users/log_in"}"]|, "Log in")
+-    end
+-
+-    test "redirects if already logged in", %{conn: conn} do
+-      result =
+-        conn
+-        |> log_in_user(user_fixture())
+-        |> live(~p"/users/reset_password")
+-        |> follow_redirect(conn, ~p"/")
+-
+-      assert {:ok, _conn} = result
+-    end
+-  end
+-
+-  describe "Reset link" do
+-    setup do
+-      %{user: user_fixture()}
+-    end
+-
+-    test "sends a new reset password token", %{conn: conn, user: user} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password")
+-
+-      {:ok, conn} =
+-        lv
+-        |> form("#reset_password_form", user: %{"email" => user.email})
+-        |> render_submit()
+-        |> follow_redirect(conn, "/")
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "If your email is in our system"
+-
+-      assert Repo.get_by!(Users.UserToken, user_id: user.id).context ==
+-               "reset_password"
+-    end
+-
+-    test "does not send reset password token if email is invalid", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password")
+-
+-      {:ok, conn} =
+-        lv
+-        |> form("#reset_password_form", user: %{"email" => "unknown@amboseli.com"})
+-        |> render_submit()
+-        |> follow_redirect(conn, "/")
+-
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "If your email is in our system"
+-      assert Repo.all(Users.UserToken) == []
+-    end
+-  end
+-end
+diff --git a/test/amboseli_web/live/user_login_live_test.exs b/test/amboseli_web/live/user_login_live_test.exs
+index a2b9238..09f5113 100644
+--- a/test/amboseli_web/live/user_login_live_test.exs
++++ b/test/amboseli_web/live/user_login_live_test.exs
+@@ -6,18 +6,16 @@ defmodule AmboseliWeb.UserLoginLiveTest do
+ 
+   describe "Log in page" do
+     test "renders log in page", %{conn: conn} do
+-      {:ok, _lv, html} = live(conn, ~p"/users/log_in")
++      {:ok, _view, html} = live(conn, ~p"/login")
+ 
+-      assert html =~ "Log in"
+-      assert html =~ "Register"
+-      assert html =~ "Forgot your password?"
++      assert html =~ "Sign In"
+     end
+ 
+     test "redirects if already logged in", %{conn: conn} do
+       result =
+         conn
+-        |> log_in_user(user_fixture())
+-        |> live(~p"/users/log_in")
++        |> login_user(user_fixture())
++        |> live(~p"/login")
+         |> follow_redirect(conn, "/")
+ 
+       assert {:ok, _conn} = result
+@@ -25,63 +23,45 @@ defmodule AmboseliWeb.UserLoginLiveTest do
+   end
+ 
+   describe "user login" do
+-    test "redirects if user login with valid credentials", %{conn: conn} do
+-      password = "123456789abcd"
+-      user = user_fixture(%{password: password})
++    test "creates a user if one does not exist with that email, and send the link", %{conn: conn} do
++      email = "email@doesnotexist.com"
+ 
+-      {:ok, lv, _html} = live(conn, ~p"/users/log_in")
++      assert is_nil(Amboseli.Repo.get_by(Amboseli.Users.User, email: email))
++      assert is_nil(find_token_for_email(email))
+ 
+-      form =
+-        form(lv, "#login_form", user: %{email: user.email, password: password, remember_me: true})
++      {:ok, view, _html} = live(conn, ~p"/login")
+ 
+-      conn = submit_form(form, conn)
++      form = form(view, "#magic_link_form", user: %{email: email})
+ 
+-      assert redirected_to(conn) == ~p"/"
+-    end
+-
+-    test "redirects to login page with a flash error if there are no valid credentials", %{
+-      conn: conn
+-    } do
+-      {:ok, lv, _html} = live(conn, ~p"/users/log_in")
++      _conn = submit_form(form, conn)
+ 
+-      form =
+-        form(lv, "#login_form",
+-          user: %{email: "test@email.com", password: "123456", remember_me: true}
+-        )
++      refute is_nil(Amboseli.Repo.get_by(Amboseli.Users.User, email: email))
++      refute is_nil(find_token_for_email(email))
++    end
+ 
+-      conn = submit_form(form, conn)
++    test "if user already exists, send the link but don't create a new one", %{conn: conn} do
++      email = "email@doesnotexist.com"
+ 
+-      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Invalid email or password"
++      assert is_nil(Amboseli.Repo.get_by(Amboseli.Users.User, email: email))
++      assert is_nil(find_token_for_email(email))
+ 
+-      assert redirected_to(conn) == "/users/log_in"
+-    end
+-  end
++      {:ok, view, _html} = live(conn, ~p"/login")
+ 
+-  describe "login navigation" do
+-    test "redirects to registration page when the Register button is clicked", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/log_in")
++      form = form(view, "#magic_link_form", user: %{email: email})
+ 
+-      {:ok, _login_live, login_html} =
+-        lv
+-        |> element(~s|main a:fl-contains("Sign up")|)
+-        |> render_click()
+-        |> follow_redirect(conn, ~p"/users/register")
++      _conn = submit_form(form, conn)
+ 
+-      assert login_html =~ "Register"
++      refute is_nil(Amboseli.Repo.get_by(Amboseli.Users.User, email: email))
++      refute is_nil(find_token_for_email(email))
+     end
++  end
+ 
+-    test "redirects to forgot password page when the Forgot Password button is clicked", %{
+-      conn: conn
+-    } do
+-      {:ok, lv, _html} = live(conn, ~p"/users/log_in")
+-
+-      {:ok, conn} =
+-        lv
+-        |> element(~s|main a:fl-contains("Forgot your password?")|)
+-        |> render_click()
+-        |> follow_redirect(conn, ~p"/users/reset_password")
++  def find_token_for_email(email) do
++    import Ecto.Query
+ 
+-      assert conn.resp_body =~ "Forgot your password?"
+-    end
++    Amboseli.Users.UserToken
++    |> join(:inner, [ut], u in assoc(ut, :user))
++    |> where([ut, u], u.email == ^email)
++    |> Amboseli.Repo.one()
+   end
+ end
+diff --git a/test/amboseli_web/live/user_registration_live_test.exs b/test/amboseli_web/live/user_registration_live_test.exs
+deleted file mode 100644
+index abb2d19..0000000
+--- a/test/amboseli_web/live/user_registration_live_test.exs
++++ /dev/null
+@@ -1,87 +0,0 @@
+-defmodule AmboseliWeb.UserRegistrationLiveTest do
+-  use AmboseliWeb.ConnCase
+-
+-  import Phoenix.LiveViewTest
+-  import Amboseli.UsersFixtures
+-
+-  describe "Registration page" do
+-    test "renders registration page", %{conn: conn} do
+-      {:ok, _lv, html} = live(conn, ~p"/users/register")
+-
+-      assert html =~ "Register"
+-      assert html =~ "Log in"
+-    end
+-
+-    test "redirects if already logged in", %{conn: conn} do
+-      result =
+-        conn
+-        |> log_in_user(user_fixture())
+-        |> live(~p"/users/register")
+-        |> follow_redirect(conn, "/")
+-
+-      assert {:ok, _conn} = result
+-    end
+-
+-    test "renders errors for invalid data", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+-
+-      result =
+-        lv
+-        |> element("#registration_form")
+-        |> render_change(user: %{"email" => "with spaces", "password" => "too short"})
+-
+-      assert result =~ "Register"
+-      assert result =~ "must have the @ sign and no spaces"
+-      assert result =~ "should be at least 12 character"
+-    end
+-  end
+-
+-  describe "register user" do
+-    test "creates account and logs the user in", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+-
+-      email = unique_user_email()
+-      form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
+-      render_submit(form)
+-      conn = follow_trigger_action(form, conn)
+-
+-      assert redirected_to(conn) == ~p"/"
+-
+-      # Now do a logged in request and assert on the menu
+-      conn = get(conn, "/")
+-      response = html_response(conn, 200)
+-      assert response =~ email
+-      assert response =~ "Settings"
+-      assert response =~ "Log out"
+-    end
+-
+-    test "renders errors for duplicated email", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+-
+-      user = user_fixture(%{email: "test@email.com"})
+-
+-      result =
+-        lv
+-        |> form("#registration_form",
+-          user: %{"email" => user.email, "password" => "valid_password"}
+-        )
+-        |> render_submit()
+-
+-      assert result =~ "has already been taken"
+-    end
+-  end
+-
+-  describe "registration navigation" do
+-    test "redirects to login page when the Log in button is clicked", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+-
+-      {:ok, _login_live, login_html} =
+-        lv
+-        |> element(~s|main a:fl-contains("Sign in")|)
+-        |> render_click()
+-        |> follow_redirect(conn, ~p"/users/log_in")
+-
+-      assert login_html =~ "Log in"
+-    end
+-  end
+-end
+diff --git a/test/amboseli_web/live/user_reset_password_live_test.exs b/test/amboseli_web/live/user_reset_password_live_test.exs
+deleted file mode 100644
+index c3c2711..0000000
+--- a/test/amboseli_web/live/user_reset_password_live_test.exs
++++ /dev/null
+@@ -1,118 +0,0 @@
+-defmodule AmboseliWeb.UserResetPasswordLiveTest do
+-  use AmboseliWeb.ConnCase
+-
+-  import Phoenix.LiveViewTest
+-  import Amboseli.UsersFixtures
+-
+-  alias Amboseli.Users
+-
+-  setup do
+-    user = user_fixture()
+-
+-    token =
+-      extract_user_token(fn url ->
+-        Users.deliver_user_reset_password_instructions(user, url)
+-      end)
+-
+-    %{token: token, user: user}
+-  end
+-
+-  describe "Reset password page" do
+-    test "renders reset password with valid token", %{conn: conn, token: token} do
+-      {:ok, _lv, html} = live(conn, ~p"/users/reset_password/#{token}")
+-
+-      assert html =~ "Reset Password"
+-    end
+-
+-    test "does not render reset password with invalid token", %{conn: conn} do
+-      {:error, {:redirect, to}} = live(conn, ~p"/users/reset_password/invalid")
+-
+-      assert to == %{
+-               flash: %{"error" => "Reset password link is invalid or it has expired."},
+-               to: ~p"/"
+-             }
+-    end
+-
+-    test "renders errors for invalid data", %{conn: conn, token: token} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+-
+-      result =
+-        lv
+-        |> element("#reset_password_form")
+-        |> render_change(
+-          user: %{"password" => "secret12", "password_confirmation" => "secret123456"}
+-        )
+-
+-      assert result =~ "should be at least 12 character"
+-      assert result =~ "does not match password"
+-    end
+-  end
+-
+-  describe "Reset Password" do
+-    test "resets password once", %{conn: conn, token: token, user: user} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+-
+-      {:ok, conn} =
+-        lv
+-        |> form("#reset_password_form",
+-          user: %{
+-            "password" => "new valid password",
+-            "password_confirmation" => "new valid password"
+-          }
+-        )
+-        |> render_submit()
+-        |> follow_redirect(conn, ~p"/users/log_in")
+-
+-      refute get_session(conn, :user_token)
+-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Password reset successfully"
+-      assert Users.get_user_by_email_and_password(user.email, "new valid password")
+-    end
+-
+-    test "does not reset password on invalid data", %{conn: conn, token: token} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+-
+-      result =
+-        lv
+-        |> form("#reset_password_form",
+-          user: %{
+-            "password" => "too short",
+-            "password_confirmation" => "does not match"
+-          }
+-        )
+-        |> render_submit()
+-
+-      assert result =~ "Reset Password"
+-      assert result =~ "should be at least 12 character(s)"
+-      assert result =~ "does not match password"
+-    end
+-  end
+-
+-  describe "Reset password navigation" do
+-    test "redirects to login page when the Log in button is clicked", %{conn: conn, token: token} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+-
+-      {:ok, conn} =
+-        lv
+-        |> element(~s|main a:fl-contains("Log in")|)
+-        |> render_click()
+-        |> follow_redirect(conn, ~p"/users/log_in")
+-
+-      assert conn.resp_body =~ "Log in"
+-    end
+-
+-    test "redirects to password reset page when the Register button is clicked", %{
+-      conn: conn,
+-      token: token
+-    } do
+-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+-
+-      {:ok, conn} =
+-        lv
+-        |> element(~s|main a:fl-contains("Register")|)
+-        |> render_click()
+-        |> follow_redirect(conn, ~p"/users/register")
+-
+-      assert conn.resp_body =~ "Register"
+-    end
+-  end
+-end
+diff --git a/test/amboseli_web/live/user_settings_live_test.exs b/test/amboseli_web/live/user_settings_live_test.exs
+index 644b145..8261218 100644
+--- a/test/amboseli_web/live/user_settings_live_test.exs
++++ b/test/amboseli_web/live/user_settings_live_test.exs
+@@ -9,38 +9,35 @@ defmodule AmboseliWeb.UserSettingsLiveTest do
+     test "renders settings page", %{conn: conn} do
+       {:ok, _lv, html} =
+         conn
+-        |> log_in_user(user_fixture())
+-        |> live(~p"/users/settings")
++        |> login_user(user_fixture())
++        |> live(~p"/account")
+ 
+       assert html =~ "Change Email"
+-      assert html =~ "Change Password"
+     end
+ 
+     test "redirects if user is not logged in", %{conn: conn} do
+-      assert {:error, redirect} = live(conn, ~p"/users/settings")
++      assert {:error, redirect} = live(conn, ~p"/account")
+ 
+       assert {:redirect, %{to: path, flash: flash}} = redirect
+-      assert path == ~p"/users/log_in"
++      assert path == ~p"/login"
+       assert %{"error" => "You must log in to access this page."} = flash
+     end
+   end
+ 
+   describe "update email form" do
+     setup %{conn: conn} do
+-      password = valid_user_password()
+-      user = user_fixture(%{password: password})
+-      %{conn: log_in_user(conn, user), user: user, password: password}
++      user = user_fixture(%{})
++      %{conn: login_user(conn, user), user: user}
+     end
+ 
+-    test "updates the user email", %{conn: conn, password: password, user: user} do
++    test "updates the user email", %{conn: conn, user: user} do
+       new_email = unique_user_email()
+ 
+-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
++      {:ok, lv, _html} = live(conn, ~p"/account")
+ 
+       result =
+         lv
+         |> form("#email_form", %{
+-          "current_password" => password,
+           "user" => %{"email" => new_email}
+         })
+         |> render_submit()
+@@ -50,14 +47,13 @@ defmodule AmboseliWeb.UserSettingsLiveTest do
+     end
+ 
+     test "renders errors with invalid data (phx-change)", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
++      {:ok, lv, _html} = live(conn, ~p"/account")
+ 
+       result =
+         lv
+         |> element("#email_form")
+         |> render_change(%{
+           "action" => "update_email",
+-          "current_password" => "invalid",
+           "user" => %{"email" => "with spaces"}
+         })
+ 
+@@ -66,95 +62,17 @@ defmodule AmboseliWeb.UserSettingsLiveTest do
+     end
+ 
+     test "renders errors with invalid data (phx-submit)", %{conn: conn, user: user} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
++      {:ok, lv, _html} = live(conn, ~p"/account")
+ 
+       result =
+         lv
+         |> form("#email_form", %{
+-          "current_password" => "invalid",
+           "user" => %{"email" => user.email}
+         })
+         |> render_submit()
+ 
+       assert result =~ "Change Email"
+       assert result =~ "did not change"
+-      assert result =~ "is not valid"
+-    end
+-  end
+-
+-  describe "update password form" do
+-    setup %{conn: conn} do
+-      password = valid_user_password()
+-      user = user_fixture(%{password: password})
+-      %{conn: log_in_user(conn, user), user: user, password: password}
+-    end
+-
+-    test "updates the user password", %{conn: conn, user: user, password: password} do
+-      new_password = valid_user_password()
+-
+-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+-
+-      form =
+-        form(lv, "#password_form", %{
+-          "current_password" => password,
+-          "user" => %{
+-            "email" => user.email,
+-            "password" => new_password,
+-            "password_confirmation" => new_password
+-          }
+-        })
+-
+-      render_submit(form)
+-
+-      new_password_conn = follow_trigger_action(form, conn)
+-
+-      assert redirected_to(new_password_conn) == ~p"/users/settings"
+-
+-      assert get_session(new_password_conn, :user_token) != get_session(conn, :user_token)
+-
+-      assert Phoenix.Flash.get(new_password_conn.assigns.flash, :info) =~
+-               "Password updated successfully"
+-
+-      assert Users.get_user_by_email_and_password(user.email, new_password)
+-    end
+-
+-    test "renders errors with invalid data (phx-change)", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+-
+-      result =
+-        lv
+-        |> element("#password_form")
+-        |> render_change(%{
+-          "current_password" => "invalid",
+-          "user" => %{
+-            "password" => "too short",
+-            "password_confirmation" => "does not match"
+-          }
+-        })
+-
+-      assert result =~ "Change Password"
+-      assert result =~ "should be at least 12 character(s)"
+-      assert result =~ "does not match password"
+-    end
+-
+-    test "renders errors with invalid data (phx-submit)", %{conn: conn} do
+-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+-
+-      result =
+-        lv
+-        |> form("#password_form", %{
+-          "current_password" => "invalid",
+-          "user" => %{
+-            "password" => "too short",
+-            "password_confirmation" => "does not match"
+-          }
+-        })
+-        |> render_submit()
+-
+-      assert result =~ "Change Password"
+-      assert result =~ "should be at least 12 character(s)"
+-      assert result =~ "does not match password"
+-      assert result =~ "is not valid"
+     end
+   end
+ 
+@@ -168,31 +86,31 @@ defmodule AmboseliWeb.UserSettingsLiveTest do
+           Users.deliver_user_update_email_instructions(%{user | email: email}, user.email, url)
+         end)
+ 
+-      %{conn: log_in_user(conn, user), token: token, email: email, user: user}
++      %{conn: login_user(conn, user), token: token, email: email, user: user}
+     end
+ 
+     test "updates the user email once", %{conn: conn, user: user, token: token, email: email} do
+-      {:error, redirect} = live(conn, ~p"/users/settings/confirm_email/#{token}")
++      {:error, redirect} = live(conn, ~p"/account/confirm_email/#{token}")
+ 
+       assert {:live_redirect, %{to: path, flash: flash}} = redirect
+-      assert path == ~p"/users/settings"
++      assert path == ~p"/account"
+       assert %{"info" => message} = flash
+       assert message == "Email changed successfully."
+       refute Users.get_user_by_email(user.email)
+       assert Users.get_user_by_email(email)
+ 
+       # use confirm token again
+-      {:error, redirect} = live(conn, ~p"/users/settings/confirm_email/#{token}")
++      {:error, redirect} = live(conn, ~p"/account/confirm_email/#{token}")
+       assert {:live_redirect, %{to: path, flash: flash}} = redirect
+-      assert path == ~p"/users/settings"
++      assert path == ~p"/account"
+       assert %{"error" => message} = flash
+       assert message == "Email change link is invalid or it has expired."
+     end
+ 
+     test "does not update email with invalid token", %{conn: conn, user: user} do
+-      {:error, redirect} = live(conn, ~p"/users/settings/confirm_email/oops")
++      {:error, redirect} = live(conn, ~p"/account/confirm_email/oops")
+       assert {:live_redirect, %{to: path, flash: flash}} = redirect
+-      assert path == ~p"/users/settings"
++      assert path == ~p"/account"
+       assert %{"error" => message} = flash
+       assert message == "Email change link is invalid or it has expired."
+       assert Users.get_user_by_email(user.email)
+@@ -200,9 +118,9 @@ defmodule AmboseliWeb.UserSettingsLiveTest do
+ 
+     test "redirects if user is not logged in", %{token: token} do
+       conn = build_conn()
+-      {:error, redirect} = live(conn, ~p"/users/settings/confirm_email/#{token}")
++      {:error, redirect} = live(conn, ~p"/account/confirm_email/#{token}")
+       assert {:redirect, %{to: path, flash: flash}} = redirect
+-      assert path == ~p"/users/log_in"
++      assert path == ~p"/login"
+       assert %{"error" => message} = flash
+       assert message == "You must log in to access this page."
+     end
+diff --git a/test/amboseli_web/user_auth_test.exs b/test/amboseli_web/user_auth_test.exs
+index 2410c76..d8fe5bf 100644
+--- a/test/amboseli_web/user_auth_test.exs
++++ b/test/amboseli_web/user_auth_test.exs
+@@ -17,9 +17,9 @@ defmodule AmboseliWeb.UserAuthTest do
+     %{user: user_fixture(), conn: conn}
+   end
+ 
+-  describe "log_in_user/3" do
++  describe "login_user/3" do
+     test "stores the user token in the session", %{conn: conn, user: user} do
+-      conn = UserAuth.log_in_user(conn, user)
++      conn = UserAuth.login_user(conn, user)
+       assert token = get_session(conn, :user_token)
+       assert get_session(conn, :live_socket_id) == "users_sessions:#{Base.url_encode64(token)}"
+       assert redirected_to(conn) == ~p"/"
+@@ -27,17 +27,17 @@ defmodule AmboseliWeb.UserAuthTest do
+     end
+ 
+     test "clears everything previously stored in the session", %{conn: conn, user: user} do
+-      conn = conn |> put_session(:to_be_removed, "value") |> UserAuth.log_in_user(user)
++      conn = conn |> put_session(:to_be_removed, "value") |> UserAuth.login_user(user)
+       refute get_session(conn, :to_be_removed)
+     end
+ 
+     test "redirects to the configured path", %{conn: conn, user: user} do
+-      conn = conn |> put_session(:user_return_to, "/hello") |> UserAuth.log_in_user(user)
++      conn = conn |> put_session(:user_return_to, "/hello") |> UserAuth.login_user(user)
+       assert redirected_to(conn) == "/hello"
+     end
+ 
+     test "writes a cookie if remember_me is configured", %{conn: conn, user: user} do
+-      conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
++      conn = conn |> fetch_cookies() |> UserAuth.login_user(user, %{"remember_me" => "true"})
+       assert get_session(conn, :user_token) == conn.cookies[@remember_me_cookie]
+ 
+       assert %{value: signed_token, max_age: max_age} = conn.resp_cookies[@remember_me_cookie]
+@@ -92,7 +92,7 @@ defmodule AmboseliWeb.UserAuthTest do
+ 
+     test "authenticates user from cookies", %{conn: conn, user: user} do
+       logged_in_conn =
+-        conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
++        conn |> fetch_cookies() |> UserAuth.login_user(user, %{"remember_me" => "true"})
+ 
+       user_token = logged_in_conn.cookies[@remember_me_cookie]
+       %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
+@@ -231,7 +231,7 @@ defmodule AmboseliWeb.UserAuthTest do
+       conn = conn |> fetch_flash() |> UserAuth.require_authenticated_user([])
+       assert conn.halted
+ 
+-      assert redirected_to(conn) == ~p"/users/log_in"
++      assert redirected_to(conn) == ~p"/login"
+ 
+       assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
+                "You must log in to access this page."
+diff --git a/test/support/conn_case.ex b/test/support/conn_case.ex
+index c60e091..2943204 100644
+--- a/test/support/conn_case.ex
++++ b/test/support/conn_case.ex
+@@ -39,14 +39,14 @@ defmodule AmboseliWeb.ConnCase do
+   @doc """
+   Setup helper that registers and logs in users.
+ 
+-      setup :register_and_log_in_user
++      setup :register_and_login_user
+ 
+   It stores an updated connection and a registered user in the
+   test context.
+   """
+-  def register_and_log_in_user(%{conn: conn}) do
++  def register_and_login_user(%{conn: conn}) do
+     user = Amboseli.UsersFixtures.user_fixture()
+-    %{conn: log_in_user(conn, user), user: user}
++    %{conn: login_user(conn, user), user: user}
+   end
+ 
+   @doc """
+@@ -54,7 +54,7 @@ defmodule AmboseliWeb.ConnCase do
+ 
+   It returns an updated `conn`.
+   """
+-  def log_in_user(conn, user) do
++  def login_user(conn, user) do
+     token = Amboseli.Users.generate_user_session_token(user)
+ 
+     conn
+diff --git a/test/support/data_case.ex b/test/support/data_case.ex
+index f16111b..d46066b 100644
+--- a/test/support/data_case.ex
++++ b/test/support/data_case.ex
+@@ -42,11 +42,6 @@ defmodule Amboseli.DataCase do
+ 
+   @doc """
+   A helper that transforms changeset errors into a map of messages.
+-
+-      assert {:error, changeset} = Accounts.create_user(%{password: "short"})
+-      assert "password is too short" in errors_on(changeset).password
+-      assert %{password: ["password is too short"]} = errors_on(changeset)
+-
+   """
+   def errors_on(changeset) do
+     Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
+diff --git a/test/support/fixtures/users_fixtures.ex b/test/support/fixtures/users_fixtures.ex
+index 4f05365..18c37b1 100644
+--- a/test/support/fixtures/users_fixtures.ex
++++ b/test/support/fixtures/users_fixtures.ex
+@@ -5,15 +5,14 @@ defmodule Amboseli.UsersFixtures do
+   """
+ 
+   def unique_user_email, do: "user#{System.unique_integer()}@amboseli.com"
+-  def valid_user_password, do: "hello world!"
+ 
+   def valid_user_attributes(attrs \\ %{}) do
+     Enum.into(attrs, %{
+-      email: unique_user_email(),
+-      password: valid_user_password()
++      email: unique_user_email()
+     })
+   end
+ 
++  # Suggestion: rename this to create_test_user, it's not a fixture!
+   def user_fixture(attrs \\ %{}) do
+     {:ok, user} =
+       attrs
