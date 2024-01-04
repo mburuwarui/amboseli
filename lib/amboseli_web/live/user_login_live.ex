@@ -48,13 +48,13 @@ defmodule AmboseliWeb.UserLoginLive do
         <main class="flex items-center justify-center px-8 py-8 sm:px-12 lg:col-span-7 lg:px-16 lg:py-12 xl:col-span-6">
           <div class="max-w-xl lg:max-w-3xl">
             <div class="flex flex-row">
-              <h1 class="text-center mt-1 pr-2 text-2xl font-bold text-gray-900 sm:text-3xl md:text-4xl">
+              <h1 class="text-center mt-1 pr-2 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl md:text-4xl">
                 Check your email!
               </h1>
               <img src={~p"/images/email.svg"} width="46" />
             </div>
 
-            <p class="text-center mt-4 leading-relaxed text-gray-500">
+            <p class="text-center mt-4 leading-relaxed text-gray-500 dark:text-gray-400">
               We sent you a link to sign in.
             </p>
           </div>
