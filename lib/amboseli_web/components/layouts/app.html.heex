@@ -117,9 +117,8 @@
           </li>
         <% end %>
       </ul>
-      <.button phx-click={JS.dispatch("toggle-darkmode")}>
-        Dark Mode
-      </.button>
+
+      <DarkMode.button />
 
       <.link
         href={~p"/"}

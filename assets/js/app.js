@@ -21,9 +21,12 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+import darkModeHook from "../vendor/dark_mode"
+let Hooks = {}
+Hooks.DarkThemeToggle = darkModeHook
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}})
+let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}, hooks: Hooks})
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
@@ -39,24 +42,3 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
-function darkExpected() {
-  return localStorage.theme === 'dark' || (!('theme' in localStorage) &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches);
-}
-
-function initDarkMode() {
-  // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-  if (darkExpected()) document.documentElement.classList.add('dark');
-  else document.documentElement.classList.remove('dark');
-}
-
-window.addEventListener("toggle-darkmode", e => {
-  if (darkExpected()) localStorage.theme = 'light';
-  else localStorage.theme = 'dark';
-  initDarkMode();
-})
-
-initDarkMode();
-
-// trigger
-// phx-click={JS.dispatch("toggle-darkmode")}
