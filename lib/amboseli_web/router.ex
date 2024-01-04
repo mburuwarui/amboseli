@@ -60,6 +60,7 @@ defmodule AmboseliWeb.Router do
     get "/", PageController, :home
 
     live_session :redirect_if_user_is_authenticated,
+      # layout: {AmboseliWeb.Layouts, :app},
       on_mount: [{AmboseliWeb.UserAuth, :redirect_if_user_is_authenticated}] do
       live "/login", UserLoginLive, :new
     end
@@ -73,7 +74,6 @@ defmodule AmboseliWeb.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :require_authenticated_user,
-      layout: {AmboseliWeb.Layouts, :home},
       on_mount: [{AmboseliWeb.UserAuth, :ensure_authenticated}] do
       live "/home", HomeLive, :index
       live "/account", UserSettingsLive, :edit

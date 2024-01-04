@@ -19,8 +19,10 @@ defmodule AmboseliWeb.UserSettingsLive do
           phx-change="validate_email"
         >
           <div>
-            <div class="block text-sm font-semibold leading-6 text-zinc-800">Current Email</div>
-            <div class="text-sm"><%= @current_user.email %></div>
+            <div class="block text-sm font-semibold leading-6 text-zinc-800 dark:text-zinc-300">
+              Current Email
+            </div>
+            <div class="text-sm dark:text-zinc-400"><%= @current_user.email %></div>
           </div>
           <.input field={@email_form[:email]} type="email" label="New Email" required />
           <:actions>
