@@ -22,6 +22,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import darkModeHook from "../vendor/dark_mode"
+
 let Hooks = {}
 Hooks.DarkThemeToggle = darkModeHook
 
