@@ -4,7 +4,8 @@ defmodule AmboseliWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <h1 class="mb-4 text-3xl dark:text-white font-bold underline">Amboseli</h1>
+    <Hero.hero />
+    <Cards.cards />
     """
   end
 

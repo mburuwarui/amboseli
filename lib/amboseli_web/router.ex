@@ -73,6 +73,7 @@ defmodule AmboseliWeb.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :require_authenticated_user,
+      layout: {AmboseliWeb.Layouts, :home},
       on_mount: [{AmboseliWeb.UserAuth, :ensure_authenticated}] do
       live "/home", HomeLive, :index
       live "/account", UserSettingsLive, :edit
