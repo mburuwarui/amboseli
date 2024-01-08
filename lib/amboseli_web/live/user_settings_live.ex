@@ -2,6 +2,7 @@ defmodule AmboseliWeb.UserSettingsLive do
   use AmboseliWeb, :live_view
 
   alias Amboseli.Users
+  alias Amboseli.Repo
 
   def render(assigns) do
     ~H"""
@@ -31,6 +32,29 @@ defmodule AmboseliWeb.UserSettingsLive do
         </.simple_form>
       </div>
     </div>
+    <div class="mt-6">
+      <div class="block text-md font-semibold leading-6 text-zinc-800 dark:text-zinc-300">
+        Blog Posts
+      </div>
+
+      <%= for post <- @current_user.posts do %>
+        <div class="mt-1 text-sm dark:text-zinc-400">
+          <%= post.title %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="mt-6">
+      <div class="block text-md font-semibold leading-6 text-zinc-800 dark:text-zinc-300">
+        Products Catalog
+      </div>
+
+      <%= for product <- @current_user.products do %>
+        <div class="mt-1 text-sm dark:text-zinc-400">
+          <%= product.title %>
+        </div>
+      <% end %>
+    </div>
     """
   end
 
@@ -48,12 +72,17 @@ defmodule AmboseliWeb.UserSettingsLive do
   end
 
   def mount(_params, _session, socket) do
-    user = socket.assigns.current_user
+    user =
+      socket.assigns.current_user
+      |> Repo.preload(:posts)
+      |> Repo.preload(:products)
+
     email_changeset = Users.change_user_email(user)
 
     socket =
       socket
       |> assign(:current_email, user.email)
+      |> assign(:current_user, user)
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:trigger_submit, false)
 

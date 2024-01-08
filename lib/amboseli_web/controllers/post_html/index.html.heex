@@ -1,6 +1,6 @@
 <.header>
   Listing Posts
-  <:actions>
+  <:actions :if={@current_user}>
     <.link href={~p"/posts/new"}>
       <.button>New Post</.button>
     </.link>
@@ -12,7 +12,7 @@
   <:col :let={post} label="Description"><%= post.description %></:col>
   <:col :let={post} label="Body"><%= post.body %></:col>
   <:col :let={post} label="Views"><%= post.views %></:col>
-  <:action :let={post}>
+  <:action :let={post} :if={@current_user}>
     <div class="sr-only">
       <.link navigate={~p"/posts/#{post}"}>Show</.link>
     </div>
@@ -20,7 +20,7 @@
       <.icon name="hero-pencil-solid" class="w-3 h-3 mb-1" />
     </.link>
   </:action>
-  <:action :let={post}>
+  <:action :let={post} :if={@current_user}>
     <.link href={~p"/posts/#{post}"} method="delete" data-confirm="Are you sure?">
       <.icon name="hero-trash-solid" class="w-4 h-4 mb-1" />
     </.link>

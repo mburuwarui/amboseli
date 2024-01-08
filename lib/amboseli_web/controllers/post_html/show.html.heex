@@ -1,7 +1,7 @@
 <.header>
   Post <%= @post.id %>
   <:subtitle>This is a post record from your database.</:subtitle>
-  <:actions>
+  <:actions :if={@current_user}>
     <.link href={~p"/posts/#{@post}/edit"}>
       <.button>Edit post</.button>
     </.link>
