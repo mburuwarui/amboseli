@@ -5,7 +5,8 @@ defmodule AmboseliWeb.ProductController do
   alias Amboseli.Catalog.Product
 
   def index(conn, _params) do
-    products = Catalog.list_products()
+    user = conn.assigns.current_user
+    products = Catalog.list_products(user)
     render(conn, :index, products: products)
   end
 
@@ -45,24 +46,38 @@ defmodule AmboseliWeb.ProductController do
 
   def update(conn, %{"id" => id, "product" => product_params}) do
     product = Catalog.get_product!(id)
+    user = conn.assigns.current_user
 
-    case Catalog.update_product(product, product_params) do
-      {:ok, product} ->
-        conn
-        |> put_flash(:info, "Product updated successfully.")
-        |> redirect(to: ~p"/products/#{product}")
-
+    with :ok <- Bodyguard.permit(Catalog, :update_product, user, product),
+         {:ok, updated_product} <- Catalog.update_product(product, product_params) do
+      conn
+      |> put_flash(:info, "Product updated successfully.")
+      |> redirect(to: ~p"/products/#{updated_product}")
+    else
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :edit, product: product, changeset: changeset)
+
+      _ ->
+        conn
+        |> put_flash(:error, "Permission denied.")
+        |> redirect(to: ~p"/products/#{product}")
     end
   end
 
   def delete(conn, %{"id" => id}) do
     product = Catalog.get_product!(id)
-    {:ok, _product} = Catalog.delete_product(product)
+    user = conn.assigns.current_user
 
-    conn
-    |> put_flash(:info, "Product deleted successfully.")
-    |> redirect(to: ~p"/products")
+    with :ok <- Bodyguard.permit(Catalog, :delete_product, user, product),
+         {:ok, _product} = Catalog.delete_product(product) do
+      conn
+      |> put_flash(:info, "Product deleted successfully.")
+      |> redirect(to: ~p"/products")
+    else
+      _ ->
+        conn
+        |> put_flash(:error, "Permission denied.")
+        |> redirect(to: ~p"/products")
+    end
   end
 end

@@ -8,6 +8,21 @@ defmodule Amboseli.Catalog do
 
   alias Amboseli.Catalog.Product
 
+  @behaviour Bodyguard.Policy
+
+  # Authorization
+
+  # Admins can update anything
+  def authorize(:update_product, %{role: :admin} = _user, _product), do: :ok
+
+  # Users can update their owned posts
+  def authorize(:update_product, %{id: user_id} = _user, %{user_id: user_id} = _product), do: :ok
+  def authorize(:delete_product, %{id: user_id} = _user, %{user_id: user_id} = _product), do: :ok
+
+  # Otherwise, denied
+  def authorize(:update_product, _user, _product), do: :error
+  def authorize(:delete_product, _user, _product), do: :error
+
   @doc """
   Returns the list of products.
 
@@ -17,8 +32,10 @@ defmodule Amboseli.Catalog do
       [%Product{}, ...]
 
   """
-  def list_products do
-    Repo.all(Product)
+  def list_products(user) do
+    Product
+    |> Bodyguard.scope(user)
+    |> Repo.all()
   end
 
   @doc """
