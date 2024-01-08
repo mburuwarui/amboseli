@@ -27,7 +27,9 @@ defmodule Amboseli.Catalog.Product do
   end
 
   # Bodyguard Schema Scopes
-  def scope(query, %User{id: user_id}, _) do
+  def scope(query, %User{id: user_id}, _) when not is_nil(user_id) do
     from p in query, where: p.user_id == ^user_id
   end
+
+  def scope(query, _, _), do: query
 end
