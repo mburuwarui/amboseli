@@ -11,8 +11,8 @@ defmodule DarkMode do
       class="text-zinc-500 dark:text-zinc-400 bg-slate-200 dark:bg-zinc-800 hover:bg-slate-900 dark:hover:bg-zinc-50 rounded-full text-sm p-1"
     >
       <svg
-        id="theme-toggle-dark-icon"
-        class="w-5 h-5 text-transparent hidden"
+        id="theme-toggle-light-icon"
+        class="w-5 h-5 text-transparent hidden hover:fill-yellow-400"
         fill="currentColor"
         viewBox="0 0 20 20"
         xmlns="http://www.w3.org/2000/svg"
@@ -21,8 +21,8 @@ defmodule DarkMode do
       </svg>
 
       <svg
-        id="theme-toggle-light-icon"
-        class="w-5 h-5 text-transparent"
+        id="theme-toggle-dark-icon"
+        class="w-5 h-5 text-transparent hover:dark:fill-yellow-400"
         fill="currentColor"
         viewBox="0 0 20 20"
         xmlns="http://www.w3.org/2000/svg"
