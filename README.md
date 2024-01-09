@@ -18,8 +18,13 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
   * Source: https://github.com/phoenixframework/phoenix
 
 ## Feautures
+  * Multi-tenancy
+  * White-label
   * User Management 
+    I) Authentication
+    II) Authorization
   * CMS
-  * Payment processing  
+  * API
   * Accounting   
   * Invoicing 
+  * Payment processing  
