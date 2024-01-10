@@ -71,7 +71,7 @@ defmodule AmboseliWeb.Router do
   scope "/", AmboseliWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
-    get "/", PageController, :home
+    live "/", IntroLive, :index
 
     live_session :redirect_if_user_is_authenticated,
       # layout: {AmboseliWeb.Layouts, :app},
