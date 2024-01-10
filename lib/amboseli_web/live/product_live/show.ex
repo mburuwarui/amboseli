@@ -4,8 +4,8 @@ defmodule AmboseliWeb.ProductLive.Show do
   alias Amboseli.Catalog
 
   @impl true
-  def mount(_params, session, socket) do
-    current_user = Map.get(session, "current_user")
+  def mount(_params, _session, socket) do
+    current_user = socket.assigns.current_user
     socket = assign(socket, :current_user, current_user)
     {:ok, socket}
   end

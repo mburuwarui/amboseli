@@ -23,19 +23,23 @@ defmodule AmboseliWeb.Router do
     # resources "/products", ProductController, except: [:create, :delete, :edit, :update]
     # resources "/posts", PostController
 
-    live "/products", ProductLive.Index, :index
-    live "/products/new", ProductLive.Index, :new
-    live "/products/:id/edit", ProductLive.Index, :edit
+    live_session :default,
+      layout: {AmboseliWeb.Layouts, :app},
+      on_mount: [{AmboseliWeb.UserAuth, :mount_current_user}] do
+      live "/products", ProductLive.Index, :index
+      live "/products/new", ProductLive.Index, :new
+      live "/products/:id/edit", ProductLive.Index, :edit
 
-    live "/products/:id", ProductLive.Show, :show
-    live "/products/:id/show/edit", ProductLive.Show, :edit
+      live "/products/:id", ProductLive.Show, :show
+      live "/products/:id/show/edit", ProductLive.Show, :edit
 
-    live "/posts", PostLive.Index, :index
-    live "/posts/new", PostLive.Index, :new
-    live "/posts/:id/edit", PostLive.Index, :edit
+      live "/posts", PostLive.Index, :index
+      live "/posts/new", PostLive.Index, :new
+      live "/posts/:id/edit", PostLive.Index, :edit
 
-    live "/posts/:id", PostLive.Show, :show
-    live "/posts/:id/show/edit", PostLive.Show, :edit
+      live "/posts/:id", PostLive.Show, :show
+      live "/posts/:id/show/edit", PostLive.Show, :edit
+    end
   end
 
   scope "/", AmboseliWeb do
@@ -71,11 +75,10 @@ defmodule AmboseliWeb.Router do
   scope "/", AmboseliWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
-    live "/", IntroLive, :index
-
     live_session :redirect_if_user_is_authenticated,
       # layout: {AmboseliWeb.Layouts, :app},
       on_mount: [{AmboseliWeb.UserAuth, :redirect_if_user_is_authenticated}] do
+      live "/", IntroLive, :index
       live "/login", UserLoginLive, :new
     end
 

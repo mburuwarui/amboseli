@@ -5,11 +5,15 @@ defmodule AmboseliWeb.ProductLive.Index do
   alias Amboseli.Catalog.Product
 
   @impl true
-  def mount(_params, session, socket) do
-    current_user = Map.get(session, "current_user")
+  def mount(_params, _session, socket) do
+    user = socket.assigns.current_user
 
-    socket = assign(socket, :current_user, current_user)
-    {:ok, stream(socket, :products, Catalog.list_products())}
+    socket =
+      socket
+      |> assign(:current_user, user)
+      |> stream(:products, Catalog.list_products())
+
+    {:ok, socket}
   end
 
   @impl true

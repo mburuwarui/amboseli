@@ -9,10 +9,7 @@ defmodule AmboseliWeb.IntroLive do
   end
 
   @impl true
-  def mount(_params, session, socket) do
-    current_user = Map.get(session, "current_user")
-
-    socket = assign(socket, :current_user, current_user)
+  def mount(_params, _session, socket) do
     {:ok, socket, layout: {AmboseliWeb.Layouts, :map}}
   end
 end
