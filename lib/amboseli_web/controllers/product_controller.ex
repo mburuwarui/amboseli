@@ -5,8 +5,7 @@ defmodule AmboseliWeb.ProductController do
   alias Amboseli.Catalog.Product
 
   def index(conn, _params) do
-    user = conn.assigns.current_user
-    products = Catalog.list_products(user)
+    products = Catalog.list_products()
     render(conn, :index, products: products)
   end
 

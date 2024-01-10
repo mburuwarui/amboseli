@@ -20,14 +20,28 @@ defmodule AmboseliWeb.Router do
   scope "/", AmboseliWeb do
     pipe_through :browser
 
-    resources "/products", ProductController, except: [:create, :delete, :edit, :update]
-    resources "/posts", PostController
+    # resources "/products", ProductController, except: [:create, :delete, :edit, :update]
+    # resources "/posts", PostController
+
+    live "/products", ProductLive.Index, :index
+    live "/products/new", ProductLive.Index, :new
+    live "/products/:id/edit", ProductLive.Index, :edit
+
+    live "/products/:id", ProductLive.Show, :show
+    live "/products/:id/show/edit", ProductLive.Show, :edit
+
+    live "/posts", PostLive.Index, :index
+    live "/posts/new", PostLive.Index, :new
+    live "/posts/:id/edit", PostLive.Index, :edit
+
+    live "/posts/:id", PostLive.Show, :show
+    live "/posts/:id/show/edit", PostLive.Show, :edit
   end
 
   scope "/", AmboseliWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    resources "/products", ProductController, only: [:create, :delete, :edit, :update]
+    # resources "/products", ProductController, only: [:create, :delete, :edit, :update]
   end
 
   # Other scopes may use custom stacks.

@@ -32,9 +32,8 @@ defmodule Amboseli.Catalog do
       [%Product{}, ...]
 
   """
-  def list_products(_user) do
+  def list_products() do
     Product
-    # |> Bodyguard.scope(user)
     |> Repo.all()
   end
 
