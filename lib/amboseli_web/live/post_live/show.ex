@@ -4,7 +4,10 @@ defmodule AmboseliWeb.PostLive.Show do
   alias Amboseli.Blog
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
+    current_user = Map.get(session, "current_user")
+
+    socket = assign(socket, :current_user, current_user)
     {:ok, socket}
   end
 
