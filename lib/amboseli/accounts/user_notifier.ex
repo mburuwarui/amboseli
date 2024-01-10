@@ -1,4 +1,4 @@
-defmodule Amboseli.Users.UserNotifier do
+defmodule Amboseli.Accounts.UserNotifier do
   import Swoosh.Email
 
   import Phoenix.Component

@@ -2,7 +2,7 @@ defmodule Amboseli.Catalog.Product do
   use Ecto.Schema
   import Ecto.Changeset
   alias Amboseli.Catalog.Category
-  alias Amboseli.Users.User
+  alias Amboseli.Accounts.User
   import Ecto.Query, only: [from: 2]
   @behaviour Bodyguard.Schema
 

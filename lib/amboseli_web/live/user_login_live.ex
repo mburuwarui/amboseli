@@ -1,7 +1,7 @@
 defmodule AmboseliWeb.UserLoginLive do
   use AmboseliWeb, :live_view
 
-  alias Amboseli.Users
+  alias Amboseli.Accounts
 
   def mount(_params, _session, socket) do
     email = live_flash(socket.assigns.flash, :email)
@@ -73,7 +73,7 @@ defmodule AmboseliWeb.UserLoginLive do
   def handle_event("send-magic-link", params, socket) do
     %{"user" => %{"email" => email}} = params
 
-    Users.login_or_register_user(email)
+    Accounts.login_or_register_user(email)
 
     socket =
       socket

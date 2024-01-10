@@ -1,4 +1,4 @@
-defmodule Amboseli.Users.User do
+defmodule Amboseli.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 

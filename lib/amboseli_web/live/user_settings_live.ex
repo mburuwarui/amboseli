@@ -1,7 +1,7 @@
 defmodule AmboseliWeb.UserSettingsLive do
   use AmboseliWeb, :live_view
 
-  alias Amboseli.Users
+  alias Amboseli.Accounts
   alias Amboseli.Repo
 
   def render(assigns) do
@@ -60,7 +60,7 @@ defmodule AmboseliWeb.UserSettingsLive do
 
   def mount(%{"token" => token}, _session, socket) do
     socket =
-      case Users.update_user_email(socket.assigns.current_user, token) do
+      case Accounts.update_user_email(socket.assigns.current_user, token) do
         :ok ->
           put_flash(socket, :info, "Email changed successfully.")
 
@@ -77,7 +77,7 @@ defmodule AmboseliWeb.UserSettingsLive do
       |> Repo.preload(:posts)
       |> Repo.preload(:products)
 
-    email_changeset = Users.change_user_email(user)
+    email_changeset = Accounts.change_user_email(user)
 
     socket =
       socket
@@ -94,7 +94,7 @@ defmodule AmboseliWeb.UserSettingsLive do
 
     email_form =
       socket.assigns.current_user
-      |> Users.change_user_email(user_params)
+      |> Accounts.change_user_email(user_params)
       |> Map.put(:action, :validate)
       |> to_form()
 
@@ -105,9 +105,9 @@ defmodule AmboseliWeb.UserSettingsLive do
     %{"user" => user_params} = params
     user = socket.assigns.current_user
 
-    case Users.apply_user_email(user, user_params) do
+    case Accounts.apply_user_email(user, user_params) do
       {:ok, applied_user} ->
-        Users.deliver_user_update_email_instructions(
+        Accounts.deliver_user_update_email_instructions(
           applied_user,
           user.email,
           &url(~p"/account/confirm_email/#{&1}")

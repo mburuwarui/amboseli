@@ -1,12 +1,12 @@
-defmodule Amboseli.Users do
+defmodule Amboseli.Accounts do
   @moduledoc """
-  The Users context.
+  The Accounts context.
   """
 
   import Ecto.Query, warn: false
   alias Amboseli.Repo
 
-  alias Amboseli.Users.{User, UserToken, UserNotifier}
+  alias Amboseli.Accounts.{User, UserToken, UserNotifier}
 
   ## Database getters
 

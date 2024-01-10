@@ -1,7 +1,7 @@
-defmodule Amboseli.Users.UserToken do
+defmodule Amboseli.Accounts.UserToken do
   use Ecto.Schema
   import Ecto.Query
-  alias Amboseli.Users.UserToken
+  alias Amboseli.Accounts.UserToken
 
   @hash_algorithm :sha256
   @rand_size 32
@@ -17,7 +17,7 @@ defmodule Amboseli.Users.UserToken do
     field :token, :binary
     field :context, :string
     field :sent_to, :string
-    belongs_to :user, Amboseli.Users.User
+    belongs_to :user, Amboseli.Accounts.User
 
     timestamps(updated_at: false)
   end
@@ -74,7 +74,7 @@ defmodule Amboseli.Users.UserToken do
   their email in the system, the tokens sent to the previous email are no longer
   valid.
 
-  Users can easily adapt the existing code to provide other types of delivery methods,
+  Accounts can easily adapt the existing code to provide other types of delivery methods,
   for example, by phone numbers.
   """
   def build_email_token(user, context) do
