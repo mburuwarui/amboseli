@@ -4,8 +4,8 @@ defmodule AmboseliWeb.PostLive.Show do
   alias Amboseli.Blog
 
   @impl true
-  def mount(_params, session, socket) do
-    current_user = Map.get(session, "current_user")
+  def mount(_params, _session, socket) do
+    current_user = socket.assigns.current_user
 
     socket = assign(socket, :current_user, current_user)
     {:ok, socket}
@@ -16,7 +16,12 @@ defmodule AmboseliWeb.PostLive.Show do
     {:noreply,
      socket
      |> assign(:page_title, page_title(socket.assigns.live_action))
-     |> assign(:post, Blog.get_post!(id))}
+     |> assign(
+       :post,
+       id
+       |> Blog.get_post!()
+       |> Blog.inc_page_views()
+     )}
   end
 
   defp page_title(:show), do: "Show Post"

@@ -47,6 +47,7 @@
   <.live_component
     module={AmboseliWeb.ProductLive.FormComponent}
     id={@product.id || :new}
+    current_user={@current_user}
     title={@page_title}
     action={@live_action}
     product={@product}

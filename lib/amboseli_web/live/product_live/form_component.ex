@@ -56,8 +56,6 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
   end
 
   defp save_product(socket, :edit, product_params) do
-    product_params = Map.put(product_params, "user_id", socket.assigns.current_user.id)
-
     case Catalog.update_product(socket.assigns.product, product_params) do
       {:ok, product} ->
         notify_parent({:saved, product})

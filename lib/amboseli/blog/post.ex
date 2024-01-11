@@ -1,4 +1,5 @@
 defmodule Amboseli.Blog.Post do
+  alias Amboseli.Accounts.User
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -7,7 +8,8 @@ defmodule Amboseli.Blog.Post do
     field :title, :string
     field :body, :string
     field :views, :integer
-    field :user_id, :id
+
+    belongs_to :user, User
 
     timestamps(type: :utc_datetime)
   end
@@ -15,7 +17,7 @@ defmodule Amboseli.Blog.Post do
   @doc false
   def changeset(post, attrs) do
     post
-    |> cast(attrs, [:title, :description, :body, :views])
-    |> validate_required([:title, :description, :body, :views])
+    |> cast(attrs, [:title, :description, :body, :views, :user_id])
+    |> validate_required([:title, :description, :body, :views, :user_id])
   end
 end
