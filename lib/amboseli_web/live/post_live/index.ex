@@ -6,10 +6,14 @@ defmodule AmboseliWeb.PostLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    current_user = socket.assigns.current_user
+    user = socket.assigns.current_user
 
-    socket = assign(socket, :current_user, current_user)
-    {:ok, stream(socket, :posts, Blog.list_posts())}
+    socket =
+      socket
+      |> assign(:current_user, user)
+      |> stream(:posts, Blog.list_posts())
+
+    {:ok, socket}
   end
 
   @impl true

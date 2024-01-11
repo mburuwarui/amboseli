@@ -1,7 +1,7 @@
 <header class="sticky top-0 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950 bg-opacity-98 z-10">
   <div class="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 py-3 text-sm">
     <div class="flex items-center gap-4">
-      <.link href={~p"/"}>
+      <.link navigate={~p"/"}>
         <img src={~p"/images/logo.svg"} width="36" />
       </.link>
       <p class="bg-brand/5 text-brand rounded-full px-2 font-medium leading-6">
@@ -99,7 +99,7 @@
 
           <li>
             <.link
-              href={~p"/logout"}
+              navigate={~p"/logout"}
               method="delete"
               class="rounded-lg bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
             >
@@ -109,7 +109,7 @@
         <% else %>
           <li>
             <.link
-              href={~p"/login"}
+              navigate={~p"/login"}
               class="rounded-lg bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
             >
               Sign in
@@ -121,7 +121,7 @@
       <DarkMode.button />
 
       <.link
-        href={~p"/"}
+        navigate={~p"/"}
         class="rounded-lg bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
       >
         Get Started <span aria-hidden="true">&rarr;</span>

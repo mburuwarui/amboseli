@@ -1,7 +1,7 @@
 <header class="sticky top-0 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950 bg-opacity-98 z-10">
   <div class="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 py-3 text-sm">
     <div class="flex items-center gap-4">
-      <.link href={~p"/"}>
+      <.link navigate={~p"/"}>
         <img src={~p"/images/logo.svg"} width="36" />
       </.link>
       <p class="bg-brand/5 text-brand rounded-full px-2 font-medium leading-6">
@@ -99,7 +99,7 @@
 
           <li>
             <.link
-              href={~p"/logout"}
+              navigate={~p"/logout"}
               method="delete"
               class="rounded-lg bg-slate-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
             >
@@ -109,7 +109,7 @@
         <% else %>
           <li>
             <.link
-              href={~p"/login"}
+              navigate={~p"/login"}
               class="rounded-lg bg-slate-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
             >
               Sign in
@@ -121,7 +121,7 @@
       <DarkMode.button />
 
       <.link
-        href={~p"/"}
+        navigate={~p"/"}
         class="rounded-lg bg-slate-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
       >
         Get Started <span aria-hidden="true">&rarr;</span>
@@ -151,7 +151,7 @@
           <span class="text-xs uppercase tracking-wide text-gray-500"> Call us </span>
 
           <a
-            href="#"
+            navigate="#"
             class="block text-2xl font-medium text-gray-900 dark:text-gray-100 hover:opacity-75 sm:text-3xl"
           >
             0726287424
@@ -166,7 +166,7 @@
         <ul class="mt-8 flex gap-6">
           <li>
             <a
-              href="/"
+              navigate="/"
               rel="noreferrer"
               target="_blank"
               class="text-gray-700 transition hover:opacity-75"
@@ -190,7 +190,7 @@
 
           <li>
             <a
-              href="/"
+              navigate="/"
               rel="noreferrer"
               target="_blank"
               class="text-gray-700 transition hover:opacity-75"
@@ -214,7 +214,7 @@
 
           <li>
             <a
-              href="/"
+              navigate="/"
               rel="noreferrer"
               target="_blank"
               class="text-gray-700 transition hover:opacity-75"
@@ -234,7 +234,7 @@
 
           <li>
             <a
-              href="/"
+              navigate="/"
               rel="noreferrer"
               target="_blank"
               class="text-gray-700 transition hover:opacity-75"
@@ -258,7 +258,7 @@
 
           <li>
             <a
-              href="/"
+              navigate="/"
               rel="noreferrer"
               target="_blank"
               class="text-gray-700 transition hover:opacity-75"
@@ -288,31 +288,31 @@
 
           <ul class="mt-6 space-y-4 text-sm">
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 Chat Application
               </a>
             </li>
 
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 Semantic Search
               </a>
             </li>
 
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 Recommendation Engine
               </a>
             </li>
 
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 Email Marketing
               </a>
             </li>
 
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 SEO Optimisation
               </a>
             </li>
@@ -324,19 +324,19 @@
 
           <ul class="mt-6 space-y-4 text-sm">
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 About
               </a>
             </li>
 
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 Meet the Team
               </a>
             </li>
 
             <li>
-              <a href="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
+              <a navigate="#" class="text-gray-700 dark:text-gray-100 transition hover:opacity-75">
                 Accounts Review
               </a>
             </li>
@@ -349,19 +349,19 @@
       <div class="sm:flex sm:items-center sm:justify-between">
         <ul class="flex flex-wrap gap-4 text-xs">
           <li>
-            <a href="#" class="text-gray-500 dark:text-gray-300 transition hover:opacity-75">
+            <a navigate="#" class="text-gray-500 dark:text-gray-300 transition hover:opacity-75">
               Terms & Conditions
             </a>
           </li>
 
           <li>
-            <a href="#" class="text-gray-500 dark:text-gray-300 transition hover:opacity-75">
+            <a navigate="#" class="text-gray-500 dark:text-gray-300 transition hover:opacity-75">
               Privacy Policy
             </a>
           </li>
 
           <li>
-            <a href="#" class="text-gray-500 dark:text-gray-300 transition hover:opacity-75">
+            <a navigate="#" class="text-gray-500 dark:text-gray-300 transition hover:opacity-75">
               Cookies
             </a>
           </li>

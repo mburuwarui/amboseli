@@ -15,7 +15,12 @@ defmodule AmboseliWeb.ProductLive.Show do
     {:noreply,
      socket
      |> assign(:page_title, page_title(socket.assigns.live_action))
-     |> assign(:product, Catalog.get_product!(id))}
+     |> assign(
+       :product,
+       id
+       |> Catalog.get_product!()
+       |> Catalog.inc_page_views()
+     )}
   end
 
   defp page_title(:show), do: "Show Product"
