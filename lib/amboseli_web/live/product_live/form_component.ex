@@ -28,7 +28,6 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
           multiple={true}
           options={category_opts(assigns)}
         />
-
         <.input field={@form[:price]} type="number" label="Price" step="any" />
         <.input field={@form[:views]} type="number" label="Views" />
         <:actions>

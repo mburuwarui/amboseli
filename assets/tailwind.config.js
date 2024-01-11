@@ -9,7 +9,8 @@ module.exports = {
   content: [
     "./js/**/*.js",
     "../lib/amboseli_web.ex",
-    "../lib/amboseli_web/**/*.*ex"
+    "../lib/amboseli_web/**/*.*ex",
+    "../deps/flashy/**/*.*ex",
   ],
   theme: {
     extend: {
