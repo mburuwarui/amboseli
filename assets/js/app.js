@@ -22,10 +22,8 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import darkModeHook from "../vendor/dark_mode"
-import FlashyHooks from "flashy"
 
 let Hooks = {}
-Hooks.Flashy = FlashyHooks 
 Hooks.DarkThemeToggle = darkModeHook
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

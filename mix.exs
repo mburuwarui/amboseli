@@ -52,9 +52,7 @@ defmodule Amboseli.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:plug_cowboy, "~> 2.5"},
-      {:bodyguard, "~> 2.4"},
-      {:flashy, "~> 0.2.5"},
-      {:petal_components, "~> 1.7"}
+      {:bodyguard, "~> 2.4"}
     ]
   end
 
