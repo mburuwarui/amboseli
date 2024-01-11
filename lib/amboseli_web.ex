@@ -94,6 +94,7 @@ defmodule AmboseliWeb do
       unquote(verified_routes())
       # Add Flash notifications functionality
       import Flashy
+      use PetalComponents
     end
   end
 
