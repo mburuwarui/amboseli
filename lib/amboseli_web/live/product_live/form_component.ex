@@ -21,6 +21,14 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
       >
         <.input field={@form[:title]} type="text" label="Title" />
         <.input field={@form[:description]} type="text" label="Description" />
+        <.input
+          field={@form[:category_ids]}
+          type="select"
+          label="Categories"
+          multiple={true}
+          options={category_opts(assigns)}
+        />
+
         <.input field={@form[:price]} type="number" label="Price" step="any" />
         <.input field={@form[:views]} type="number" label="Views" />
         <:actions>
@@ -92,4 +100,16 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
   end
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
+
+  def category_opts(assigns) do
+    changeset = Map.get(assigns, :changeset, %Ecto.Changeset{})
+
+    existing_ids =
+      changeset
+      |> Ecto.Changeset.get_change(:categories, [])
+      |> Enum.map(& &1.data.id)
+
+    for cat <- Amboseli.Catalog.list_categories(),
+        do: [key: cat.title, value: cat.id, selected: cat.id in existing_ids]
+  end
 end
