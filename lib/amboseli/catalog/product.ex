@@ -3,8 +3,6 @@ defmodule Amboseli.Catalog.Product do
   import Ecto.Changeset
   alias Amboseli.Catalog.Category
   alias Amboseli.Accounts.User
-  import Ecto.Query, only: [from: 2]
-  @behaviour Bodyguard.Schema
 
   schema "products" do
     field :description, :string
@@ -25,11 +23,4 @@ defmodule Amboseli.Catalog.Product do
     |> cast(attrs, [:title, :description, :price, :views, :user_id])
     |> validate_required([:title, :description, :price, :views, :user_id])
   end
-
-  # Bodyguard Schema Scopes
-  def scope(query, %User{id: user_id}, _) when not is_nil(user_id) do
-    from p in query, where: p.user_id == ^user_id
-  end
-
-  def scope(query, _, _), do: query
 end

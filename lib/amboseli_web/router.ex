@@ -25,7 +25,10 @@ defmodule AmboseliWeb.Router do
 
     live_session :default,
       layout: {AmboseliWeb.Layouts, :app},
-      on_mount: [{AmboseliWeb.UserAuth, :mount_current_user}] do
+      on_mount: [
+        {AmboseliWeb.UserAuth, :mount_current_user},
+        Permit.Phoenix.LiveView.AuthorizeHook
+      ] do
       live "/products", ProductLive.Index, :index
       live "/products/new", ProductLive.Index, :new
       live "/products/:id/edit", ProductLive.Index, :edit

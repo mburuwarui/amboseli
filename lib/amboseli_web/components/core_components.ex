@@ -48,7 +48,7 @@ defmodule AmboseliWeb.CoreComponents do
       phx-mounted={@show && show_modal(@id)}
       phx-remove={hide_modal(@id)}
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
-      class="relative z-50 hidden"
+      class="relative z-40 hidden"
     >
       <div
         id={"#{@id}-bg"}
@@ -152,7 +152,7 @@ defmodule AmboseliWeb.CoreComponents do
 
   def flash_group(assigns) do
     ~H"""
-    <div id={@id}>
+    <div id={@id} class="z-50">
       <.flash kind={:info} title="Success!" flash={@flash} />
       <.flash kind={:error} title="Error!" flash={@flash} />
       <.flash
