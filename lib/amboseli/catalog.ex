@@ -36,7 +36,10 @@ defmodule Amboseli.Catalog do
 
   """
   def get_product!(id) do
-    Product |> Repo.get!(id) |> Repo.preload(:categories)
+    Product
+    |> Repo.get!(id)
+    |> Repo.preload(:categories)
+    |> Repo.preload(:user)
   end
 
   @doc """

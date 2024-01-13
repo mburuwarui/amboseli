@@ -49,7 +49,12 @@ defmodule Amboseli.Accounts do
       ** (Ecto.NoResultsError)
 
   """
-  def get_user!(id), do: Repo.get!(User, id)
+  def get_user!(id) do
+    User
+    |> Repo.get!(id)
+    |> Repo.preload(:products)
+    |> Repo.preload(:posts)
+  end
 
   ## User registration
 
