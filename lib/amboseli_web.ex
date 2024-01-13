@@ -59,10 +59,12 @@ defmodule AmboseliWeb do
 
       @impl true
       def fetch_subject(socket, _session) do
-        if socket.assigns.current_user == nil do
-          assign(socket, :current_user, nil)
-        else
-          socket.assigns.current_user
+        case socket.assigns.current_user do
+          nil ->
+            assign(socket, :current_user, nil)
+
+          _ ->
+            socket.assigns.current_user
         end
       end
 

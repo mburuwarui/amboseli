@@ -80,7 +80,7 @@ defmodule AmboseliWeb.Router do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
     live_session :redirect_if_user_is_authenticated,
-      # layout: {AmboseliWeb.Layouts, :app},
+      layout: {AmboseliWeb.Layouts, :login},
       on_mount: [{AmboseliWeb.UserAuth, :redirect_if_user_is_authenticated}] do
       live "/", IntroLive, :index
       live "/login", UserLoginLive, :new

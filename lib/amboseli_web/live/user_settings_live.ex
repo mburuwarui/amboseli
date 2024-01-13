@@ -4,6 +4,7 @@ defmodule AmboseliWeb.UserSettingsLive do
   alias Amboseli.Accounts
   alias Amboseli.Repo
 
+  @impl true
   def render(assigns) do
     ~H"""
     <.header class="text-center">
@@ -58,6 +59,7 @@ defmodule AmboseliWeb.UserSettingsLive do
     """
   end
 
+  @impl true
   def mount(%{"token" => token}, _session, socket) do
     socket =
       case Accounts.update_user_email(socket.assigns.current_user, token) do
@@ -89,6 +91,7 @@ defmodule AmboseliWeb.UserSettingsLive do
     {:ok, socket}
   end
 
+  @impl true
   def handle_event("validate_email", params, socket) do
     %{"user" => user_params} = params
 

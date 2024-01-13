@@ -69,6 +69,15 @@
     <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-900">
       <ul class="relative z-10 flex items-center gap-4 justify-end">
         <%= if @current_user do %>
+          <li>
+            <.link
+              href={~p"/login"}
+              class="rounded-lg bg-slate-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
+            >
+              Sign in
+            </.link>
+          </li>
+        <% else %>
           <li class="hidden md:block text-[0.8125rem] leading-6 text-zinc-900 hover:text-zinc-700">
             <.link navigate={~p"/account"}>
               <button type="button" class="group flex shrink-0 items-center rounded-lg transition">
@@ -78,7 +87,7 @@
 
                 <p class="ms-2 hidden text-left text-xs sm:block">
                   <span class="text-gray-500 dark:text-gray-300 hover:text-gray-700">
-                    <%= @current_user.email %>
+                    <%= "email" %>
                   </span>
                 </p>
 
@@ -105,15 +114,6 @@
               class="rounded-lg bg-slate-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
             >
               Sign out
-            </.link>
-          </li>
-        <% else %>
-          <li>
-            <.link
-              href={~p"/login"}
-              class="rounded-lg bg-slate-100 dark:bg-zinc-800 dark:text-zinc-100 z-10 px-2 py-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700"
-            >
-              Sign in
             </.link>
           </li>
         <% end %>

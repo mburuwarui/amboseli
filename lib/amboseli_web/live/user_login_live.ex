@@ -3,6 +3,7 @@ defmodule AmboseliWeb.UserLoginLive do
 
   alias Amboseli.Accounts
 
+  @impl true
   def mount(_params, _session, socket) do
     email = live_flash(socket.assigns.flash, :email)
     form = to_form(%{"email" => email}, as: "user")
@@ -15,6 +16,7 @@ defmodule AmboseliWeb.UserLoginLive do
     {:ok, socket, temporary_assigns: [form: form]}
   end
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div :if={@status == :not_sent} class="mx-auto max-w-md">
