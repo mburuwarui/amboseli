@@ -1,6 +1,6 @@
 <.header>
   Listing Posts
-  <:actions :if={@current_user}>
+  <:actions :if={Map.get(@current_user, :email, nil)}>
     <.link patch={~p"/posts/new"}>
       <.button>New Post</.button>
     </.link>

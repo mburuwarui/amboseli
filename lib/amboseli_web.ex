@@ -59,6 +59,8 @@ defmodule AmboseliWeb do
 
       @impl true
       def fetch_subject(socket, _session) do
+        IO.inspect(socket.assigns.current_user, label: "Current User")
+
         case socket.assigns.current_user do
           nil ->
             assign(socket, :current_user, nil)

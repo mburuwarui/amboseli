@@ -72,6 +72,7 @@ defmodule AmboseliWeb.UserLoginLive do
     """
   end
 
+  @impl true
   def handle_event("send-magic-link", params, socket) do
     %{"user" => %{"email" => email}} = params
 

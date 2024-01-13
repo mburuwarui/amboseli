@@ -1,6 +1,6 @@
 <.header>
   Listing Products
-  <:actions :if={@current_user}>
+  <:actions :if={Map.get(@current_user, :email, nil)}>
     <.link patch={~p"/products/new"}>
       <.button>New Product</.button>
     </.link>

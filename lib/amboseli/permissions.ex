@@ -12,5 +12,5 @@ defmodule Amboseli.Permissions do
     |> read(Post)
   end
 
-  def can(_), do: permit() |> read(Product)
+  def can(_), do: permit() |> read(Product) |> read(Post)
 end
