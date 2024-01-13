@@ -2,12 +2,10 @@ defmodule AmboseliWeb.ProductLive.Show do
   use AmboseliWeb, :live_view
 
   alias Amboseli.Catalog
+  alias Amboseli.Catalog.Product
 
-  use Permit.Phoenix.LiveView,
-    authorization_module: Amboseli.Authorization,
-    resource_module: Amboseli.Catalog.Product
-
-  def fetch_subject(socket, _session), do: socket.assigns.current_user.id
+  @impl true
+  def resource_module, do: Product
 
   @impl true
   def mount(_params, _session, socket) do

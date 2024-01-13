@@ -54,6 +54,12 @@ defmodule AmboseliWeb do
       use Phoenix.LiveView,
         layout: {AmboseliWeb.Layouts, :app}
 
+      use Permit.Phoenix.LiveView,
+        authorization_module: Amboseli.Authorization
+
+      @impl true
+      def fetch_subject(socket, _session), do: socket.assigns.current_user
+
       unquote(html_helpers())
     end
   end

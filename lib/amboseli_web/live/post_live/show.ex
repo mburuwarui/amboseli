@@ -2,6 +2,10 @@ defmodule AmboseliWeb.PostLive.Show do
   use AmboseliWeb, :live_view
 
   alias Amboseli.Blog
+  alias Amboseli.Blog.Post
+
+  @impl true
+  def resource_module, do: Post
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,6 +26,13 @@ defmodule AmboseliWeb.PostLive.Show do
        |> Blog.get_post!()
        |> Blog.inc_page_views()
      )}
+  end
+
+  def handle_unauthorized(socket) do
+    {:halt,
+     socket
+     |> put_flash(:error, "No permission to perform this action")
+     |> push_redirect(to: socket.view.fallback_path())}
   end
 
   defp page_title(:show), do: "Show Post"

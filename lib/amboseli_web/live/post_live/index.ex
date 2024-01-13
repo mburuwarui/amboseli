@@ -5,6 +5,9 @@ defmodule AmboseliWeb.PostLive.Index do
   alias Amboseli.Blog.Post
 
   @impl true
+  def resource_module, do: Post
+
+  @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
 
@@ -50,5 +53,12 @@ defmodule AmboseliWeb.PostLive.Index do
     {:ok, _} = Blog.delete_post(post)
 
     {:noreply, stream_delete(socket, :posts, post)}
+  end
+
+  def handle_unauthorized(socket) do
+    {:halt,
+     socket
+     |> put_flash(:error, "No permission to perform this action")
+     |> push_redirect(to: socket.view.fallback_path())}
   end
 end
