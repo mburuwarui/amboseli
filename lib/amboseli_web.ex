@@ -58,7 +58,13 @@ defmodule AmboseliWeb do
         authorization_module: Amboseli.Authorization
 
       @impl true
-      def fetch_subject(socket, _session), do: socket.assigns.current_user
+      def fetch_subject(socket, _session) do
+        if socket.assigns.current_user == nil do
+          assign(socket, :current_user, nil)
+        else
+          socket.assigns.current_user
+        end
+      end
 
       unquote(html_helpers())
     end

@@ -4,8 +4,6 @@ defmodule Amboseli.Permissions do
   alias Amboseli.Blog.Post
   use Permit.Ecto.Permissions, actions_module: Permit.Phoenix.Actions
 
-  # A user will be able
-
   def can(%User{id: user_id}) do
     permit()
     |> all(Product, user_id: user_id)

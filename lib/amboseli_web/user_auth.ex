@@ -95,23 +95,17 @@ defmodule AmboseliWeb.UserAuth do
     assign(conn, :current_user, user)
   end
 
-  # def fetch_current_user(conn, _opts) do
-  #   {user_token, conn} = ensure_user_token(conn)
-  #
-  #   if user = user_token && Accounts.get_user_by_session_token(user_token) do
-  #     assign(conn, :current_user, user)
-  #   else
-  #     if user_uuid = get_session(conn, :current_user) do
-  #       assign(conn, :current_user, user_uuid)
-  #     else
-  #       new_uuid = Ecto.UUID.generate()
-  #
-  #       conn
-  #       |> assign(:current_user, %{id: new_uuid})
-  #       |> put_session(:current_user, %{id: new_uuid})
-  #     end
-  #   end
-  # end
+  def fetch_current_uuid(conn, _) do
+    if user_uuid = get_session(conn, :current_uuid) do
+      assign(conn, :current_uuid, user_uuid)
+    else
+      new_uuid = Ecto.UUID.generate()
+
+      conn
+      |> assign(:current_uuid, new_uuid)
+      |> put_session(:current_uuid, new_uuid)
+    end
+  end
 
   defp ensure_user_token(conn) do
     if token = get_session(conn, :user_token) do
