@@ -53,6 +53,13 @@ if config_env() == :prod do
 
   config :amboseli, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  config :amboseli, Amboseli.PromEx,
+    disabled: false,
+    manual_metrics_start_delay: :no_delay,
+    drop_metrics_groups: [],
+    grafana: :disabled,
+    metrics_server: :disabled
+
   config :amboseli, AmboseliWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [

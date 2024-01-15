@@ -17,7 +17,8 @@ defmodule Amboseli.Application do
       # Start a worker by calling: Amboseli.Worker.start_link(arg)
       # {Amboseli.Worker, arg},
       # Start to serve requests, typically the last entry
-      AmboseliWeb.Endpoint
+      AmboseliWeb.Endpoint,
+      Amboseli.PromEx
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

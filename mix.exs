@@ -52,10 +52,13 @@ defmodule Amboseli.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:plug_cowboy, "~> 2.5"},
+      {:towel, "~> 0.2.2"},
       {:permit, "~> 0.1.3"},
       {:permit_phoenix, "~> 0.1.0"},
       {:permit_ecto, "~> 0.1.1"},
-      {:postex, "~> 0.1.8"}
+      {:postex, "~> 0.1.8"},
+      {:mjml, "~> 3.0"},
+      {:prom_ex, "~> 1.9"}
     ]
   end
 
