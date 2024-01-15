@@ -77,7 +77,7 @@ defmodule Amboseli.PromEx do
   @impl true
   def dashboard_assigns do
     [
-      datasource_id: "YOUR_PROMETHEUS_DATASOURCE_ID",
+      datasource_id: "prometheus_amboseli",
       default_selected_interval: "30s"
     ]
   end
@@ -87,11 +87,11 @@ defmodule Amboseli.PromEx do
     [
       # PromEx built in Grafana dashboards
       {:prom_ex, "application.json"},
-      {:prom_ex, "beam.json"}
-      # {:prom_ex, "phoenix.json"},
-      # {:prom_ex, "ecto.json"},
+      {:prom_ex, "beam.json"},
+      {:prom_ex, "phoenix.json"},
+      {:prom_ex, "ecto.json"},
       # {:prom_ex, "oban.json"},
-      # {:prom_ex, "phoenix_live_view.json"},
+      {:prom_ex, "phoenix_live_view.json"}
       # {:prom_ex, "absinthe.json"},
       # {:prom_ex, "broadway.json"},
 

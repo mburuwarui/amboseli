@@ -9,6 +9,7 @@ defmodule Amboseli.Application do
   def start(_type, _args) do
     children = [
       AmboseliWeb.Telemetry,
+      Amboseli.PromEx,
       Amboseli.Repo,
       {DNSCluster, query: Application.get_env(:amboseli, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Amboseli.PubSub},
@@ -17,8 +18,7 @@ defmodule Amboseli.Application do
       # Start a worker by calling: Amboseli.Worker.start_link(arg)
       # {Amboseli.Worker, arg},
       # Start to serve requests, typically the last entry
-      AmboseliWeb.Endpoint,
-      Amboseli.PromEx
+      AmboseliWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

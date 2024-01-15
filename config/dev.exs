@@ -81,9 +81,16 @@ config :phoenix_live_view, :debug_heex_annotations, true
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
+# Configures PromEx Metrics
 config :amboseli, Amboseli.PromEx,
-       disabled: false,
-       manual_metrics_start_delay: :no_delay,
-       drop_metrics_groups: [],
-       grafana: :disabled,
-       metrics_server: :disabled
+  disabled: false,
+  manual_metrics_start_delay: :no_delay,
+  drop_metrics_groups: [],
+  grafana: [
+    host: "http://localhost:3000",
+    # Authenticate via Basic Auth
+    username: "admin",
+    password: "admin",
+    upload_dashboards_on_start: true
+  ],
+  metrics_server: :disabled
