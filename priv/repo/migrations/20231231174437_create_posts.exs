@@ -7,11 +7,11 @@ defmodule Amboseli.Repo.Migrations.CreatePosts do
       add :description, :string
       add :body, :text
       add :views, :integer, default: 0, null: false
-      add :author_id, references(:users, on_delete: :delete_all)
+      add :user_id, references(:users, on_delete: :delete_all)
 
       timestamps(type: :utc_datetime)
     end
 
-    create index(:posts, [:author_id])
+    create index(:posts, [:user_id])
   end
 end
