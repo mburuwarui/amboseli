@@ -23,7 +23,7 @@ scrape_configs:
   enable_http2: true
   static_configs:
   - targets:
-    - localhost:9090
+    - prometheus:9090
 - job_name: amboseli 
   honor_timestamps: true
   track_timestamps_staleness: false
@@ -35,4 +35,4 @@ scrape_configs:
   enable_http2: true
   static_configs:
   - targets:
-    - localhost:4000
+    - amboseli:4000

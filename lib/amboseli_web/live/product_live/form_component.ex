@@ -21,6 +21,8 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
       >
         <.input field={@form[:title]} type="text" label="Title" />
         <.input field={@form[:description]} type="text" label="Description" />
+        <.input field={@form[:price]} type="number" label="Price" step="any" />
+        <.input field={@form[:views]} type="number" label="Views" />
         <.input
           field={@form[:category_ids]}
           type="select"
@@ -28,8 +30,6 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
           multiple={true}
           options={category_opts(assigns)}
         />
-        <.input field={@form[:price]} type="number" label="Price" step="any" />
-        <.input field={@form[:views]} type="number" label="Views" />
         <:actions>
           <.button phx-disable-with="Saving...">Save Product</.button>
         </:actions>

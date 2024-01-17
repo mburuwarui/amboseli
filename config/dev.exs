@@ -84,7 +84,7 @@ config :amboseli, Amboseli.PromEx,
   manual_metrics_start_delay: :no_delay,
   drop_metrics_groups: [],
   grafana: [
-    host: "http://localhost:3000",
+    host: "http://grafana:3000",
     # Authenticate via Basic Auth
     username: "admin",
     password: "admin",
