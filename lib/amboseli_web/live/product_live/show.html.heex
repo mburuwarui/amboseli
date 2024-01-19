@@ -9,7 +9,13 @@
 </.header>
 
 <.list>
-  <:item title="Title"><%= @product.title %></:item>
+  <:item title="Title">
+    <%= if FunWithFlags.enabled?(:uppercase_product_name) do %>
+      <%= String.upcase(@product.title) %>
+    <% else %>
+      <%= @product.title %>
+    <% end %>
+  </:item>
   <:item title="Description"><%= @product.description %></:item>
   <:item title="Price"><%= @product.price %></:item>
   <:item title="Views"><%= @product.views %></:item>

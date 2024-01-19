@@ -62,6 +62,11 @@ config :logger, :console,
 config :phoenix, :json_library, Jason
 
 # FunWithFlags configuration.
+config :fun_with_flags, :cache,
+  enabled: true,
+  # in seconds
+  ttl: 900
+
 config(:fun_with_flags, :cache_bust_notifications, enabled: false)
 
 config :fun_with_flags, :persistence,
