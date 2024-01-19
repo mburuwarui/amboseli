@@ -46,10 +46,10 @@ defmodule AmboseliWeb.Router do
     end
   end
 
-  scope "/", AmboseliWeb do
-    pipe_through [:browser, :require_authenticated_user]
+  scope path: "/feature-flags" do
+    pipe_through :browser
 
-    # resources "/products", ProductController, only: [:create, :delete, :edit, :update]
+    forward "/", FunWithFlags.UI.Router, namespace: "feature-flags"
   end
 
   # Other scopes may use custom stacks.

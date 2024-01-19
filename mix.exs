@@ -59,7 +59,9 @@ defmodule Amboseli.MixProject do
       {:postex, "~> 0.1.8"},
       {:mjml, "~> 3.0"},
       {:prom_ex, "~> 1.9"},
-      {:plausible, "~> 0.1.1"}
+      {:plausible, "~> 0.1.1"},
+      {:fun_with_flags, "~> 1.11"},
+      {:fun_with_flags_ui, "~> 1.0"}
     ]
   end
 
