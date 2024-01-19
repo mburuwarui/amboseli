@@ -4,7 +4,7 @@ defmodule Card do
   def card(assigns) do
     ~H"""
     <a
-      class="block rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-800 p-8 shadow-xl transition hover:border-emerald-500/10 dark:hover:border-emerald-500/10 hover:shadow-emerald-500/10 dark:hover:shadow-emerald-500/10"
+      class="block rounded-xl bg-slate-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 p-8 shadow-xl transition hover:border-emerald-500/10 dark:hover:border-emerald-500/10 hover:shadow-emerald-500/10 dark:hover:shadow-emerald-500/10"
       href="/services/digital-campaigns"
     >
       <svg
