@@ -137,7 +137,7 @@ defmodule Intro do
         <img src={~p"/images/banner.svg"} width="66" />
 
         <h1 class="text-brand mt-10 flex items-center text-sm font-semibold leading-6">
-          Rafiki AMI
+          Rafiki Network
           <small class="bg-brand/5 dark:bg-brand/10 text-[0.8125rem] ml-3 rounded-full px-2 font-medium leading-6">
             v<%= Application.spec(:phoenix, :vsn) %>
           </small>
@@ -148,7 +148,7 @@ defmodule Intro do
         </p>
 
         <p class="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Bring your water utility business to life with our wide range grid-management solutions that enable utilities around the world to run profitable, efficient, and reliable systems.
+          Bring your utility business to life with our wide range grid-management solutions that enable utilities around the world to run profitable, efficient, and reliable systems.
           Rafiki AMI improves a utility’s ability to collect frequent and accurate water usage data to improve billing, leak detection, and water resource management.
         </p>
         <p class="text-[1.2rem] italic mt-4 leading-10 tracking-tighter text-cyan-900 dark:text-cyan-400">
