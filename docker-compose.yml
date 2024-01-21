@@ -7,8 +7,8 @@ services:
       ERL_MAX_PORTS: 1024
     env_file:
       - .env
-    ports:
-      - '4000:4000'
+    expose:
+      - 4000
     hostname: 'amboseli'
     restart: unless-stopped
     labels:
