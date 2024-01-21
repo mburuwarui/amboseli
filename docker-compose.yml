@@ -11,5 +11,18 @@ services:
       - '4000:4000'
     hostname: 'amboseli'
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
+      - "traefik.http.routers.amboseli.entrypoints=web,websecure"
+      - "traefik.http.routers.amboseli.rule=Host(`amboseli`)" # <== Setting the domain for the dashboard
+      - "traefik.http.routers.amboseli.service=portainer-service"
+      - "traefik.http.services.amboseli-service.loadbalancer.server.port=4000"
+      - "traefik.http.routers.amboseli.tls=true"
+      - "traefik.http.routers.amboseli.tls.certresolver=production"
     volumes:
       - .:/app
+
+networks:
+  default:
+    external:
+      name: amboseli_default
