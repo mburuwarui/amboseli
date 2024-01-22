@@ -13,12 +13,12 @@ services:
     restart: unless-stopped
     labels:
       - traefik.enable=true
-      - traefik.http.routers.web.entrypoints=web,websecure
-      - traefik.http.routers.web.rule=Host(`web`)
-      - traefik.http.routers.web.service=web-service
-      - traefik.http.services.web-service.loadbalancer.server.port=4000
-      - traefik.http.routers.web.tls=true
-      - traefik.http.routers.web.tls.certresolver=production
+      - traefik.http.routers.amboseli.entrypoints=web,websecure
+      - traefik.http.routers.amboseli.rule=Host(`amboseli`)
+      - traefik.http.routers.amboseli.service=amboseli-service
+      - traefik.http.services.amboseli-service.loadbalancer.server.port=4000
+      - traefik.http.routers.amboseli.tls=true
+      - traefik.http.routers.amboseli.tls.certresolver=production
     volumes: [.:/app]
     networks: [amboseli_default]
   storagebroker:
@@ -34,8 +34,8 @@ services:
       - traefik.http.routers.storagebroker.rule=Host(`storagebroker`)
       - traefik.http.routers.storagebroker.service=storagebroker-service
       - traefik.http.services.storagebroker-service.loadbalancer.server.port=50051
-      - traefik.http.routers.web.tls=true
-      - traefik.http.routers.web.tls.certresolver=production
+      - traefik.http.routers.storagebroker.tls=true
+      - traefik.http.routers.storagebroker.tls.certresolver=production
   safekeeper1:
     image: perconalab/neon:latest
     container_name: safekeeper
@@ -50,8 +50,8 @@ services:
       - traefik.http.routers.safekeeper1.rule=Host(`safekeeper1`)
       - traefik.http.routers.safekeeper1.service=safekeeper1-service
       - traefik.http.services.safekeeper1-service.loadbalancer.server.port=7676
-      - traefik.http.routers.web.tls=true
-      - traefik.http.routers.web.tls.certresolver=production
+      - traefik.http.routers.safekeeper1.tls=true
+      - traefik.http.routers.safekeeper1.tls.certresolver=production
   pageserver:
     image: perconalab/neon:latest
     container_name: pageserver
@@ -66,8 +66,8 @@ services:
       - traefik.http.routers.pageserver.rule=Host(`pageserver`)
       - traefik.http.routers.pageserver.service=pageserver-service
       - traefik.http.services.pageserver-service.loadbalancer.server.port=9898
-      - traefik.http.routers.web.tls=true
-      - traefik.http.routers.web.tls.certresolver=production
+      - traefik.http.routers.pageserver.tls=true
+      - traefik.http.routers.pageserver.tls.certresolver=production
   compute:
     image: perconalab/neon:latest
     container_name: compute
@@ -83,8 +83,8 @@ services:
       - traefik.http.routers.compute.rule=Host(`compute`)
       - traefik.http.routers.compute.service=compute-service
       - traefik.http.services.compute-service.loadbalancer.server.port=55432
-      - traefik.http.routers.web.tls=true
-      - traefik.http.routers.web.tls.certresolver=production
+      - traefik.http.routers.compute.tls=true
+      - traefik.http.routers.compute.tls.certresolver=production
   grafana:
     image: grafana/grafana-enterprise
     container_name: grafana
@@ -122,8 +122,8 @@ services:
       - traefik.http.routers.prometheus.rule=Host(`prometheus`)
       - traefik.http.routers.prometheus.service=prometheus-service
       - traefik.http.services.prometheus-service.loadbalancer.server.port=9090
-      - traefik.http.routers.grafana.tls=true
-      - traefik.http.routers.grafana.tls.certresolver=production
+      - traefik.http.routers.prometheus.tls=true
+      - traefik.http.routers.prometheus.tls.certresolver=production
 volumes:
   grafana-storage: {}
   prometheus-data: {}
