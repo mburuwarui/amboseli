@@ -1,149 +1,132 @@
+---
 version: '3.8'
-
 services:
   web:
     build: .
+    container_name: amboseli
     environment:
       MIX_ENV: dev
       ERL_MAX_PORTS: 1024
-    env_file:
-      - .env
-    expose:
-      - 4000
-    hostname: 'amboseli'
+    env_file: [.env]
+    expose: [4000]
+    hostname: amboseli
     restart: unless-stopped
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.web.entrypoints=web,websecure"
-      - "traefik.http.routers.web.rule=Host(`web`)"
-      - "traefik.http.routers.web.service=web-service"
-      - "traefik.http.services.web-service.loadbalancer.server.port=4000"
-      - "traefik.http.routers.web.tls=true"
-      - "traefik.http.routers.web.tls.certresolver=production"
-    volumes:
-      - .:/app
-    networks:
-      - amboseli_default
-
+      - traefik.enable=true
+      - traefik.http.routers.web.entrypoints=web,websecure
+      - traefik.http.routers.web.rule=Host(`web`)
+      - traefik.http.routers.web.service=web-service
+      - traefik.http.services.web-service.loadbalancer.server.port=4000
+      - traefik.http.routers.web.tls=true
+      - traefik.http.routers.web.tls.certresolver=production
+    volumes: [.:/app]
+    networks: [amboseli_default]
   storagebroker:
     image: perconalab/neon:latest
+    container_name: storagebroker
     command: storage_broker -l 0.0.0.0:50051
-    networks:
-      - amboseli_default
+    networks: [amboseli_default]
     restart: always
-    hostname: 'storagebroker'
+    hostname: storagebroker
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.storagebroker.entrypoints=web,websecure"
-      - "traefik.http.routers.storagebroker.rule=Host(`storagebroker`)"
-      - "traefik.http.routers.storagebroker.service=storagebroker-service"
-      - "traefik.http.services.storagebroker-service.loadbalancer.server.port=50051"
-      - "traefik.http.routers.web.tls=true"
-      - "traefik.http.routers.web.tls.certresolver=production"
-
+      - traefik.enable=true
+      - traefik.http.routers.storagebroker.entrypoints=web,websecure
+      - traefik.http.routers.storagebroker.rule=Host(`storagebroker`)
+      - traefik.http.routers.storagebroker.service=storagebroker-service
+      - traefik.http.services.storagebroker-service.loadbalancer.server.port=50051
+      - traefik.http.routers.web.tls=true
+      - traefik.http.routers.web.tls.certresolver=production
   safekeeper1:
     image: perconalab/neon:latest
-    command: safekeeper --id=1 -D /data --broker-endpoint=http://storagebroker:50051 -l safekeeper1:5454 --listen-http=0.0.0.0:7676
-    networks:
-      - amboseli_default
+    container_name: safekeeper
+    command: safekeeper --id=1 -D /data --broker-endpoint=http://storagebroker:50051
+      -l safekeeper1:5454 --listen-http=0.0.0.0:7676
+    networks: [amboseli_default]
     restart: always
-    hostname: 'safekeeper1'
+    hostname: safekeeper1
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.safekeeper1.entrypoints=web,websecure"
-      - "traefik.http.routers.safekeeper1.rule=Host(`safekeeper1`)"
-      - "traefik.http.routers.safekeeper1.service=safekeeper1-service"
-      - "traefik.http.services.safekeeper1-service.loadbalancer.server.port=7676"
-      - "traefik.http.routers.web.tls=true"
-      - "traefik.http.routers.web.tls.certresolver=production"
-
+      - traefik.enable=true
+      - traefik.http.routers.safekeeper1.entrypoints=web,websecure
+      - traefik.http.routers.safekeeper1.rule=Host(`safekeeper1`)
+      - traefik.http.routers.safekeeper1.service=safekeeper1-service
+      - traefik.http.services.safekeeper1-service.loadbalancer.server.port=7676
+      - traefik.http.routers.web.tls=true
+      - traefik.http.routers.web.tls.certresolver=production
   pageserver:
     image: perconalab/neon:latest
-    command: pageserver -D /data -c "id=1" -c "broker_endpoint='http://storagebroker:50051'" -c "listen_pg_addr='0.0.0.0:6400'" -c "listen_http_addr='0.0.0.0:9898'" -c "pg_distrib_dir='/opt/neondatabase-neon/pg_install'"
-    networks:
-      - amboseli_default
+    container_name: pageserver
+    command: pageserver -D /data -c "id=1" -c "broker_endpoint='http://storagebroker:50051'"
+      -c "listen_pg_addr='0.0.0.0:6400'" -c "listen_http_addr='0.0.0.0:9898'" -c "pg_distrib_dir='/opt/neondatabase-neon/pg_install'"
+    networks: [amboseli_default]
     restart: always
-    hostname: 'pageserver'
+    hostname: pageserver
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pageserver.entrypoints=web,websecure"
-      - "traefik.http.routers.pageserver.rule=Host(`pageserver`)"
-      - "traefik.http.routers.pageserver.service=pageserver-service"
-      - "traefik.http.services.pageserver-service.loadbalancer.server.port=9898"
-      - "traefik.http.routers.web.tls=true"
-      - "traefik.http.routers.web.tls.certresolver=production"
-
+      - traefik.enable=true
+      - traefik.http.routers.pageserver.entrypoints=web,websecure
+      - traefik.http.routers.pageserver.rule=Host(`pageserver`)
+      - traefik.http.routers.pageserver.service=pageserver-service
+      - traefik.http.services.pageserver-service.loadbalancer.server.port=9898
+      - traefik.http.routers.web.tls=true
+      - traefik.http.routers.web.tls.certresolver=production
   compute:
     image: perconalab/neon:latest
+    container_name: compute
     command: /compute.sh
-    environment:
-      - PAGESERVER=pageserver
-      - SAFEKEEPERS=safekeeper1:5454
-    expose:
-      - 55432
+    environment: [PAGESERVER=pageserver, SAFEKEEPERS=safekeeper1:5454]
+    expose: [55432]
     restart: always
-    networks:
-      - amboseli_default
-    hostname: 'compute'
+    networks: [amboseli_default]
+    hostname: compute
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.compute.entrypoints=web,websecure"
-      - "traefik.http.routers.compute.rule=Host(`compute`)"
-      - "traefik.http.routers.compute.service=compute-service"
-      - "traefik.http.services.compute-service.loadbalancer.server.port=55432"
-      - "traefik.http.routers.web.tls=true"
-      - "traefik.http.routers.web.tls.certresolver=production"
-
+      - traefik.enable=true
+      - traefik.http.routers.compute.entrypoints=web,websecure
+      - traefik.http.routers.compute.rule=Host(`compute`)
+      - traefik.http.routers.compute.service=compute-service
+      - traefik.http.services.compute-service.loadbalancer.server.port=55432
+      - traefik.http.routers.web.tls=true
+      - traefik.http.routers.web.tls.certresolver=production
   grafana:
     image: grafana/grafana-enterprise
     container_name: grafana
-    networks:
-      - amboseli_default
-    hostname: 'grafana'
+    networks: [amboseli_default]
+    hostname: grafana
     restart: unless-stopped
-    expose:
-      - 3000
+    expose: [3000]
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.entrypoints=web,websecure"
-      - "traefik.http.routers.grafana.rule=Host(`grafana`)"
-      - "traefik.http.routers.grafana.service=grafana-service"
-      - "traefik.http.services.grafana-service.loadbalancer.server.port=3000"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.tls.certresolver=production"  
-    volumes:
-      - grafana-storage:/var/lib/grafana
-
+      - traefik.enable=true
+      - traefik.http.routers.grafana.entrypoints=web,websecure
+      - traefik.http.routers.grafana.rule=Host(`grafana`)
+      - traefik.http.routers.grafana.service=grafana-service
+      - traefik.http.services.grafana-service.loadbalancer.server.port=3000
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=production
+    volumes: [grafana-storage:/var/lib/grafana]
   prometheus:
     image: prom/prometheus
+    container_name: prometheus
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.console.libraries=/etc/prometheus/console_libraries"
-      - "--web.console.templates=/etc/prometheus/consoles"
-    expose: 
-      - 9090
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+    expose: [9090]
     volumes:
       - /home/blackstar/Apps/amboseli/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     restart: always
-    networks:
-      - amboseli_default
-    hostname: 'prometheus'
+    networks: [amboseli_default]
+    hostname: prometheus
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.entrypoints=web,websecure"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus`)"
-      - "traefik.http.routers.prometheus.service=prometheus-service"
-      - "traefik.http.services.prometheus-service.loadbalancer.server.port=9090"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.tls.certresolver=production"  
-
+      - traefik.enable=true
+      - traefik.http.routers.prometheus.entrypoints=web,websecure
+      - traefik.http.routers.prometheus.rule=Host(`prometheus`)
+      - traefik.http.routers.prometheus.service=prometheus-service
+      - traefik.http.services.prometheus-service.loadbalancer.server.port=9090
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=production
 volumes:
   grafana-storage: {}
   prometheus-data: {}
-
 networks:
   amboseli_default:
     external: true
-
