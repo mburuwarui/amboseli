@@ -101,6 +101,8 @@ services:
       - traefik.http.routers.grafana.tls=true
       - traefik.http.routers.grafana.tls.certresolver=production
     volumes: [grafana-storage:/var/lib/grafana]
+    environment:
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
   prometheus:
     image: prom/prometheus
     container_name: prometheus
