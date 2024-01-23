@@ -13,7 +13,7 @@ config :amboseli,
 
 # Configures the endpoint
 config :amboseli, AmboseliWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "amboseli.localhost"],
   adapter: Phoenix.Endpoint.Cowboy2Adapter,
   render_errors: [
     formats: [html: AmboseliWeb.ErrorHTML, json: AmboseliWeb.ErrorJSON],

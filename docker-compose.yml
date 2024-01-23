@@ -8,13 +8,12 @@ services:
       MIX_ENV: dev
       ERL_MAX_PORTS: 1024
     env_file: [.env]
-    expose: [4000]
     hostname: amboseli
     restart: unless-stopped
     labels:
       - traefik.enable=true
       - traefik.http.routers.amboseli.entrypoints=web,websecure
-      - traefik.http.routers.amboseli.rule=Host(`amboseli`)
+      - traefik.http.routers.amboseli.rule=Host(`amboseli.localhost`)
       - traefik.http.routers.amboseli.service=amboseli-service
       - traefik.http.services.amboseli-service.loadbalancer.server.port=4000
       - traefik.http.routers.amboseli.tls=true
@@ -85,50 +84,6 @@ services:
       - traefik.http.services.compute-service.loadbalancer.server.port=55432
       - traefik.http.routers.compute.tls=true
       - traefik.http.routers.compute.tls.certresolver=production
-  grafana:
-    image: grafana/grafana-enterprise
-    container_name: grafana
-    networks: [amboseli_default]
-    hostname: grafana
-    restart: unless-stopped
-    expose: [3000]
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.grafana.entrypoints=web,websecure
-      - traefik.http.routers.grafana.rule=Host(`grafana`)
-      - traefik.http.routers.grafana.service=grafana-service
-      - traefik.http.services.grafana-service.loadbalancer.server.port=3000
-      - traefik.http.routers.grafana.tls=true
-      - traefik.http.routers.grafana.tls.certresolver=production
-    volumes: [grafana-storage:/var/lib/grafana]
-    environment:
-      GF_INSTALL_PLUGINS: grafana-piechart-panel
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --web.console.libraries=/etc/prometheus/console_libraries
-      - --web.console.templates=/etc/prometheus/consoles
-    expose: [9090]
-    volumes:
-      - /home/blackstar/Apps/amboseli/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
-    restart: always
-    networks: [amboseli_default]
-    hostname: prometheus
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.prometheus.entrypoints=web,websecure
-      - traefik.http.routers.prometheus.rule=Host(`prometheus`)
-      - traefik.http.routers.prometheus.service=prometheus-service
-      - traefik.http.services.prometheus-service.loadbalancer.server.port=9090
-      - traefik.http.routers.prometheus.tls=true
-      - traefik.http.routers.prometheus.tls.certresolver=production
-volumes:
-  grafana-storage: {}
-  prometheus-data: {}
 networks:
   amboseli_default:
     external: true
