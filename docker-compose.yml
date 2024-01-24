@@ -20,6 +20,24 @@ services:
       - traefik.http.routers.amboseli.tls.certresolver=production
     volumes: [.:/app]
     networks: [amboseli_default]
+  livebook:
+    image: ghcr.io/livebook-dev/livebook
+    container_name: livebook
+    networks: [amboseli_default]
+    restart: unless-stopped
+    hostname: livebook
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.livebook.entrypoints=web,websecure
+      - traefik.http.routers.livebook.rule=Host(`livebook.localhost`)
+      - traefik.http.routers.livebook.service=livebook-service
+      - traefik.http.services.livebook-service.loadbalancer.server.port=8080
+      - traefik.http.routers.livebook.tls=true
+      - traefik.http.routers.livebook.tls.certresolver=production
+    environment:
+      - LIVEBOOK_COOKIE=livebook
+      - LIVEBOOK_DEFAULT_RUNTIME=attached:livebook@amboseli:livebook
+      - LIVEBOOK_TOKEN_ENABLED=false
   storagebroker:
     image: perconalab/neon:latest
     container_name: storagebroker
@@ -71,7 +89,11 @@ services:
     image: perconalab/neon:latest
     container_name: compute
     command: /compute.sh
-    environment: [PAGESERVER=pageserver, SAFEKEEPERS=safekeeper1:5454]
+    environment:
+      - PAGESERVER=pageserver
+      - SAFEKEEPERS=safekeeper1:5454
+      - TENANT=3abce7c7a96038fc5515165b076a0bdd
+      - TIMELINE=e5fccffa9361a64b37e4aa1ee9bdffbd
     expose: [55432]
     restart: always
     networks: [amboseli_default]

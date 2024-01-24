@@ -57,7 +57,6 @@ defmodule Amboseli.MixProject do
       {:permit_phoenix, "~> 0.1.0"},
       {:permit_ecto, "~> 0.1.1"},
       {:postex, "~> 0.1.8"},
-      {:mjml, "~> 3.0"},
       {:prom_ex, "~> 1.9"},
       {:plausible, "~> 0.1.1"},
       {:fun_with_flags, "~> 1.11"},
