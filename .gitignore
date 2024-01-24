@@ -35,3 +35,6 @@ amboseli-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Ignore acme.json file for Let's Encrypt
+/infrastructure/traefik/ssl-certs/acme.json
+

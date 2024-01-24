@@ -1,0 +1,119 @@
+---
+version: '3.8'
+services:
+  traefik:
+    image: traefik:2.10.7
+    command:
+      - --log.level=DEBUG
+      - --api.insecure=true
+      - --metrics.prometheus=true
+      - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+      - --metrics.prometheus.entryPoint=metrics
+      - --providers.docker
+      - --providers.docker.watch
+    container_name: traefik
+    hostname: traefik
+    networks: [amboseli_default]
+    ports: [80:80, 443:443]
+    volumes:
+      - ./traefik/ssl-certs:/ssl-certs
+      - ./traefik/etc/traefik:/etc/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik_https.rule=Host(`${TRAEFIK_URL}`)
+      - traefik.http.routers.traefik_https.entrypoints=web,websecure
+      - traefik.http.routers.traefik_https.service=api@internal
+      - traefik.http.services.api@internal.loadbalancer.server.port=8080
+      - traefik.http.routers.traefik_https.tls=true
+      - traefik.http.routers.traefik_https.tls.certresolver=production
+      - traefik.http.routers.traefik_https.middlewares=traefik-auth
+      - traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_BASIC_AUTH}
+      - traefik.http.middlewares.traefik-auth.basicauth.removeheader=true
+      - traefik.http.routers.traefik_https.middlewares=redirect-to-https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+  portainer-ee:
+    container_name: portainer
+    hostname: portainer
+    command: -H unix:///var/run/docker.sock
+    networks: [amboseli_default]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    restart: unless-stopped
+    image: portainer/portainer-ee:latest
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portainer.entrypoints=web,websecure
+      - traefik.http.routers.portainer.rule=Host(`${PORT_URL}`)
+      - traefik.http.routers.portainer.service=portainer-service
+      - traefik.http.services.portainer-service.loadbalancer.server.port=9000
+      - traefik.http.routers.portainer.tls.certresolver=production
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.size=256MB
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    restart: always
+    networks: [amboseli_default]
+    hostname: prometheus
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.prometheus.entrypoints=web,websecure
+      - traefik.http.routers.prometheus.rule=Host(`${PROM_URL}`)
+      - traefik.docker.network=amboseli_default
+      - traefik.http.routers.prometheus.service=prometheus-service
+      - traefik.http.routers.prometheus.middlewares=traefik-auth
+      - traefik.http.services.prometheus-service.loadbalancer.server.port=9090
+      - traefik.http.routers.prometheus.tls=true
+      - traefik.http.routers.prometheus.tls.certresolver=production
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    networks: [amboseli_default]
+    hostname: grafana
+    restart: unless-stopped
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.entrypoints=web,websecure
+      - traefik.http.routers.grafana.rule=Host(`${GRAFANA_URL}`)
+      - traefik.http.routers.grafana.service=grafana-service
+      - traefik.http.services.grafana-service.loadbalancer.server.port=3000
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=production
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning/
+    environment:
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+volumes:
+  portainer_data: {}
+  grafana-data: {}
+  prometheus-data: {}
+networks:
+  amboseli_default:
+    external: true
