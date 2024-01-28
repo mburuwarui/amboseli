@@ -1,8 +1,8 @@
 ---
-version: '3.8'
+version: "3.8"
 services:
   traefik:
-    image: traefik:2.10.7
+    image: docker.io/traefik:2.10.7
     command:
       - --log.level=DEBUG
       - --api.insecure=true
@@ -23,7 +23,7 @@ services:
     logging:
       options:
         max-size: 10m
-        max-file: '3'
+        max-file: "3"
     labels:
       - traefik.enable=true
       - traefik.http.routers.traefik_https.rule=Host(`${TRAEFIK_URL}`)
@@ -46,11 +46,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
     restart: unless-stopped
-    image: portainer/portainer-ee:latest
+    image: docker.io/portainer/portainer-ee:latest
     logging:
       options:
         max-size: 10m
-        max-file: '3'
+        max-file: "3"
     labels:
       - traefik.enable=true
       - traefik.http.routers.portainer.entrypoints=web,websecure
@@ -59,7 +59,7 @@ services:
       - traefik.http.services.portainer-service.loadbalancer.server.port=9000
       - traefik.http.routers.portainer.tls.certresolver=production
   prometheus:
-    image: prom/prometheus
+    image: docker.io/prom/prometheus
     container_name: prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -76,7 +76,7 @@ services:
     logging:
       options:
         max-size: 10m
-        max-file: '3'
+        max-file: "3"
     labels:
       - traefik.enable=true
       - traefik.http.routers.prometheus.entrypoints=web,websecure
@@ -88,7 +88,7 @@ services:
       - traefik.http.routers.prometheus.tls=true
       - traefik.http.routers.prometheus.tls.certresolver=production
   grafana:
-    image: grafana/grafana-enterprise
+    image: docker.io/grafana/grafana-enterprise
     container_name: grafana
     networks: [amboseli_default]
     hostname: grafana
@@ -96,7 +96,7 @@ services:
     logging:
       options:
         max-size: 10m
-        max-file: '3'
+        max-file: "3"
     labels:
       - traefik.enable=true
       - traefik.http.routers.grafana.entrypoints=web,websecure

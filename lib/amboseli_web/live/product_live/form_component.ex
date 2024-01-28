@@ -46,7 +46,7 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
      socket
      |> assign(assigns)
      |> assign_form(changeset)}
-  end
+      end
 
   @impl true
   def handle_event("validate", %{"product" => product_params}, socket) do

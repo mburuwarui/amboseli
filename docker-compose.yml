@@ -1,5 +1,5 @@
 ---
-version: '3.8'
+version: "3.8"
 services:
   web:
     build: .
@@ -38,8 +38,9 @@ services:
       - LIVEBOOK_COOKIE=livebook
       - LIVEBOOK_DEFAULT_RUNTIME=attached:livebook@amboseli:livebook
       - LIVEBOOK_TOKEN_ENABLED=false
+      - ERL_MAX_PORTS=1024
   storagebroker:
-    image: perconalab/neon:latest
+    image: docker.io/perconalab/neon:latest
     container_name: storagebroker
     command: storage_broker -l 0.0.0.0:50051
     networks: [amboseli_default]
@@ -54,9 +55,10 @@ services:
       - traefik.http.routers.storagebroker.tls=true
       - traefik.http.routers.storagebroker.tls.certresolver=production
   safekeeper1:
-    image: perconalab/neon:latest
+    image: docker.io/perconalab/neon:latest
     container_name: safekeeper
-    command: safekeeper --id=1 -D /data --broker-endpoint=http://storagebroker:50051
+    command:
+      safekeeper --id=1 -D /data --broker-endpoint=http://storagebroker:50051
       -l safekeeper1:5454 --listen-http=0.0.0.0:7676
     networks: [amboseli_default]
     restart: always
@@ -70,9 +72,10 @@ services:
       - traefik.http.routers.safekeeper1.tls=true
       - traefik.http.routers.safekeeper1.tls.certresolver=production
   pageserver:
-    image: perconalab/neon:latest
+    image: docker.io/perconalab/neon:latest
     container_name: pageserver
-    command: pageserver -D /data -c "id=1" -c "broker_endpoint='http://storagebroker:50051'"
+    command:
+      pageserver -D /data -c "id=1" -c "broker_endpoint='http://storagebroker:50051'"
       -c "listen_pg_addr='0.0.0.0:6400'" -c "listen_http_addr='0.0.0.0:9898'" -c "pg_distrib_dir='/opt/neondatabase-neon/pg_install'"
     networks: [amboseli_default]
     restart: always
@@ -86,14 +89,14 @@ services:
       - traefik.http.routers.pageserver.tls=true
       - traefik.http.routers.pageserver.tls.certresolver=production
   compute:
-    image: perconalab/neon:latest
+    image: docker.io/perconalab/neon:latest
     container_name: compute
     command: /compute.sh
     environment:
       - PAGESERVER=pageserver
       - SAFEKEEPERS=safekeeper1:5454
-      - TENANT=3abce7c7a96038fc5515165b076a0bdd
-      - TIMELINE=e5fccffa9361a64b37e4aa1ee9bdffbd
+      - TENANT=2ef73d2d012db777f659adb60672c958
+      - TIMELINE=56c48a694100052a7e646e25396d7227
     expose: [55432]
     restart: always
     networks: [amboseli_default]
