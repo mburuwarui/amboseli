@@ -1,23 +1,38 @@
 ---
 global:
   checkNewVersion: true
-  sendAnonymousUsage: false  # true by default
+  sendAnonymousUsage: false # true by default
 # (Optional) Log information
 # ---
 log:
-  level: ERROR  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-  format: common  # common, json, logfmt
+  level: ERROR # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: common # common, json, logfmt
   filePath: /etc/traefik/traefik.log
 # (Optional) Accesslog
 # ---
 # accesslog:
-  # format: common  # common, json, logfmt
-  # filePath: /var/log/traefik/access.log
+# format: common  # common, json, logfmt
+# filePath: /var/log/traefik/access.log
 # (Optional) Enable API and Dashboard
 # ---
 api:
-  dashboard: true  # true by default
-  insecure: true  # Don't do this in production!
+  dashboard: true # true by default
+  insecure: true # Don't do this in production!
+
+# Prometheus Metrics configuration
+# ---
+metrics:
+  prometheus:
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    entryPoint: metrics
+
 # Entry Points configuration
 # ---
 entryPoints:
@@ -36,6 +51,8 @@ entryPoints:
     address: :443
     forwardedHeaders:
       insecure: true
+  metrics:
+    address: :8082
 # Configure your CertificateResolver here...
 # ---
 certificatesResolvers:
@@ -46,7 +63,7 @@ certificatesResolvers:
       caServer: https://acme-staging-v02.api.letsencrypt.org/directory
       httpChallenge:
         entryPoint: web
-#
+  #
   production:
     acme:
       email: mburuwarui@proton.me
@@ -67,7 +84,7 @@ certificatesResolvers:
 #       minVersion: VersionTLS12
 providers:
   docker:
-    exposedByDefault: false  # Default is true
+    exposedByDefault: false # Default is true
   file:
     # watch for dynamic configuration changes
     directory: /etc/traefik
