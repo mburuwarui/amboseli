@@ -42,11 +42,11 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
   def update(%{product: product} = assigns, socket) do
     changeset = Catalog.change_product(product)
 
-    {:ok,
-     socket
-     |> assign(assigns)
-     |> assign_form(changeset)}
-      end
+    socket
+    |> assign(assigns)
+    |> assign_form(changeset)
+    |> ok()
+  end
 
   @impl true
   def handle_event("validate", %{"product" => product_params}, socket) do
@@ -67,10 +67,10 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
       {:ok, product} ->
         notify_parent({:saved, product})
 
-        {:noreply,
-         socket
-         |> put_flash(:info, "Product updated successfully")
-         |> push_patch(to: socket.assigns.patch)}
+        socket
+        |> put_flash(:info, "Product updated successfully")
+        |> push_patch(to: socket.assigns.patch)
+        |> noreply()
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -84,10 +84,10 @@ defmodule AmboseliWeb.ProductLive.FormComponent do
       {:ok, product} ->
         notify_parent({:saved, product})
 
-        {:noreply,
-         socket
-         |> put_flash(:info, "Product created successfully")
-         |> push_patch(to: socket.assigns.patch)}
+        socket
+        |> put_flash(:info, "Product created successfully")
+        |> push_patch(to: socket.assigns.patch)
+        |> noreply()
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

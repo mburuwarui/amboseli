@@ -73,12 +73,17 @@ defmodule AmboseliWeb do
       end
 
       unquote(html_helpers())
+
+      def ok(socket), do: {:ok, socket}
+      def noreply(socket), do: {:noreply, socket}
     end
   end
 
   def live_component do
     quote do
       use Phoenix.LiveComponent
+      def ok(socket), do: {:ok, socket}
+      def noreply(socket), do: {:noreply, socket}
 
       unquote(html_helpers())
     end

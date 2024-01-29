@@ -17,15 +17,15 @@ defmodule AmboseliWeb.PostLive.Show do
 
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
-    {:noreply,
-     socket
-     |> assign(:page_title, page_title(socket.assigns.live_action))
-     |> assign(
-       :post,
-       id
-       |> Blog.get_post!()
-       |> Blog.inc_page_views()
-     )}
+    socket
+    |> assign(:page_title, page_title(socket.assigns.live_action))
+    |> assign(
+      :post,
+      id
+      |> Blog.get_post!()
+      |> Blog.inc_page_views()
+    )
+    |> noreply()
   end
 
   def handle_unauthorized(socket) do

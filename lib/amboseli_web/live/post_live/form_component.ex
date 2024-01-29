@@ -35,10 +35,10 @@ defmodule AmboseliWeb.PostLive.FormComponent do
   def update(%{post: post} = assigns, socket) do
     changeset = Blog.change_post(post)
 
-    {:ok,
-     socket
-     |> assign(assigns)
-     |> assign_form(changeset)}
+    socket
+    |> assign(assigns)
+    |> assign_form(changeset)
+    |> ok()
   end
 
   @impl true
@@ -60,10 +60,10 @@ defmodule AmboseliWeb.PostLive.FormComponent do
       {:ok, post} ->
         notify_parent({:saved, post})
 
-        {:noreply,
-         socket
-         |> put_flash(:info, "Post updated successfully")
-         |> push_patch(to: socket.assigns.patch)}
+        socket
+        |> put_flash(:info, "Post updated successfully")
+        |> push_patch(to: socket.assigns.patch)
+        |> noreply()
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -77,10 +77,10 @@ defmodule AmboseliWeb.PostLive.FormComponent do
       {:ok, post} ->
         notify_parent({:saved, post})
 
-        {:noreply,
-         socket
-         |> put_flash(:info, "Post created successfully")
-         |> push_patch(to: socket.assigns.patch)}
+        socket
+        |> put_flash(:info, "Post created successfully")
+        |> push_patch(to: socket.assigns.patch)
+        |> noreply()
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

@@ -16,15 +16,15 @@ defmodule AmboseliWeb.ProductLive.Show do
 
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
-    {:noreply,
-     socket
-     |> assign(:page_title, page_title(socket.assigns.live_action))
-     |> assign(
-       :product,
-       id
-       |> Catalog.get_product!()
-       |> Catalog.inc_page_views()
-     )}
+    socket
+    |> assign(:page_title, page_title(socket.assigns.live_action))
+    |> assign(
+      :product,
+      id
+      |> Catalog.get_product!()
+      |> Catalog.inc_page_views()
+    )
+    |> noreply()
   end
 
   defp page_title(:show), do: "Show Product"
