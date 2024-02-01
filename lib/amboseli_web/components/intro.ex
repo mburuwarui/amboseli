@@ -1,5 +1,5 @@
 defmodule Intro do
-  use AmboseliWeb, :html
+  use AmboseliWeb, :live_component
 
   def intro(assigns) do
     ~H"""
@@ -143,12 +143,14 @@ defmodule Intro do
           </small>
         </h1>
 
+        <div id="map" phx-update="ignore" phx-hook="MapTrace" class="h-96"></div>
+
         <p class="text-[2rem] mt-4 font-semibold leading-10 tracking-tighter text-zinc-900 dark:text-zinc-100">
           Peace of mind from prototype to production.
         </p>
 
         <p class="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Bring your utility business to life with our wide range grid-management solutions that enable utilities around the world to run profitable, efficient, and reliable systems.
+          Bring your utility business to life with our wide range home-grid-management solutions that enable utilities around the world to run profitable, efficient, and reliable systems.
           Rafiki AMI improves a utility’s ability to collect frequent and accurate water usage data to improve billing, leak detection, and water resource management.
         </p>
         <p class="text-[1.2rem] italic mt-4 leading-10 tracking-tighter text-cyan-900 dark:text-cyan-400">
