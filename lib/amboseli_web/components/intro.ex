@@ -3,134 +3,14 @@ defmodule Intro do
 
   def intro(assigns) do
     ~H"""
-    <div class="left-[40rem] absolute inset-y-0 right-0 z-0 hidden lg:block xl:left-[50rem]">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        version="1.1"
-        xmlns:xlink="http://www.w3.org/1999/xlink"
-        xmlns:svgjs="http://svgjs.dev/svgjs"
-        class="absolute inset-0 h-full w-full"
-        viewBox="0 0 1440 700"
+    <div class="left-[40rem] absolute inset-y-0 right-0 z-0 hidden lg:block xl:left-[50rem] pt-20">
+      <div
+        id="map"
+        phx-update="ignore"
+        phx-hook="MapTrace"
+        class="dark absolute inset-0 h-full w-full rounded-xl border border-gray-100 dark:border-gray-800 p-8 shadow-xl transition hover:border-emerald-500/10 dark:hover:border-emerald-500/10 hover:shadow-emerald-500/10 dark:hover:shadow-emerald-500/10"
       >
-        <g mask="url(&quot;#SvgjsMask10012&quot;)" fill="none">
-          <path
-            d="M774.29 597.91L762.4 602.67 755.15 592.12 743.26 596.87 736.01 586.32 724.12 591.08 716.87 580.52"
-            stroke="rgba(12, 183, 193, 1)"
-            stroke-width="1.13"
-            stroke-dasharray="3, 2"
-          >
-          </path>
-          <path
-            d="M852.71 473.74a5.6 5.6 0 1 0-8.84-6.88 5.6 5.6 0 1 0 8.84 6.88zM840.08 463.92a5.6 5.6 0 1 0-8.84-6.88 5.6 5.6 0 1 0 8.84 6.88zM827.45 454.09a5.6 5.6 0 1 0-8.84-6.87 5.6 5.6 0 1 0 8.84 6.87zM814.82 444.27a5.6 5.6 0 1 0-8.84-6.87 5.6 5.6 0 1 0 8.84 6.87zM887.79 480.75a5.6 5.6 0 1 0-8.84-6.87 5.6 5.6 0 1 0 8.84 6.87zM875.16 470.93a5.6 5.6 0 1 0-8.84-6.88 5.6 5.6 0 1 0 8.84 6.88zM862.53 461.11a5.6 5.6 0 1 0-8.84-6.88 5.6 5.6 0 1 0 8.84 6.88zM849.9 451.29a5.6 5.6 0 1 0-8.84-6.88 5.6 5.6 0 1 0 8.84 6.88z"
-            fill="rgba(221, 106, 105, 1)"
-          >
-          </path>
-          <rect
-            width="125.60000000000001"
-            height="125.60000000000001"
-            clip-path="url(&quot;#SvgjsClipPath10013&quot;)"
-            x="821.43"
-            y="576.92"
-            fill="url(&quot;#SvgjsPattern10014&quot;)"
-            transform="rotate(124.02, 884.23, 639.72)"
-          >
-          </rect>
-          <path
-            d="M864.64 111.55L875.86 105.38 884.35 114.98 895.57 108.81 904.05 118.4 915.27 112.23 923.76 121.83M863.27 119.43L874.49 113.26 882.98 122.86 894.2 116.69 902.68 126.28 913.9 120.11 922.39 129.71M861.9 127.31L873.12 121.15 881.61 130.74 892.83 124.57 901.31 134.16 912.53 127.99 921.02 137.59"
-            stroke="rgba(221, 106, 105, 1)"
-            stroke-width="1"
-          >
-          </path>
-          <rect
-            width="426"
-            height="426"
-            clip-path="url(&quot;#SvgjsClipPath10015&quot;)"
-            x="11.55"
-            y="261.81"
-            fill="url(&quot;#SvgjsPattern10016&quot;)"
-            transform="rotate(79.68, 224.55, 474.81)"
-          >
-          </rect>
-          <path
-            d="M431.53 364.06a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76zM418.77 373.72a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76zM406.01 383.37a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76zM393.25 393.03a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76zM447.39 331.99a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76zM434.63 341.65a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76zM421.87 351.3a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76zM409.11 360.96a5.6 5.6 0 1 0-8.93 6.76 5.6 5.6 0 1 0 8.93-6.76z"
-            stroke="rgba(221, 106, 105, 1)"
-            stroke-width="1"
-          >
-          </path>
-          <path
-            d="M1184.42 335.33a5.6 5.6 0 1 0 1.19 11.14 5.6 5.6 0 1 0-1.19-11.14zM1186.12 351.24a5.6 5.6 0 1 0 1.2 11.14 5.6 5.6 0 1 0-1.2-11.14zM1187.83 367.15a5.6 5.6 0 1 0 1.19 11.14 5.6 5.6 0 1 0-1.19-11.14zM1189.53 383.06a5.6 5.6 0 1 0 1.2 11.13 5.6 5.6 0 1 0-1.2-11.13z"
-            stroke="rgba(12, 183, 193, 1)"
-            stroke-width="2.32"
-          >
-          </path>
-          <path
-            d="M349.28999999999996 756.74 L412.91999999999996 604.4399999999999L481.5178683670979 781.0028683670979z"
-            fill="rgba(221, 106, 105, 1)"
-          >
-          </path>
-          <path
-            d="M1416.67 268.54999999999995 L1247.0400000000002 232.19L1409.5217516671623 172.70324833283766z"
-            fill="rgba(233, 212, 93, 1)"
-          >
-          </path>
-          <rect
-            width="456"
-            height="456"
-            clip-path="url(&quot;#SvgjsClipPath10017&quot;)"
-            x="-61.05"
-            y="39.85"
-            fill="url(&quot;#SvgjsPattern10018&quot;)"
-            transform="rotate(21.88, 166.95, 267.85)"
-          >
-          </rect>
-        </g>
-        <defs>
-          <mask id="SvgjsMask10012">
-            <rect width="1440" height="700" fill="#ffffff"></rect>
-          </mask>
-          <pattern
-            x="0"
-            y="0"
-            width="12.56"
-            height="12.56"
-            patternUnits="userSpaceOnUse"
-            id="SvgjsPattern10014"
-          >
-            <path d="M0 12.56L6.28 0L12.56 12.56" stroke="rgba(12, 183, 193, 1)" fill="none"></path>
-          </pattern>
-          <clipPath id="SvgjsClipPath10013">
-            <circle r="31.400000000000002" cx="884.23" cy="639.72"></circle>
-          </clipPath>
-          <pattern
-            x="0"
-            y="0"
-            width="426"
-            height="7.1"
-            patternUnits="userSpaceOnUse"
-            id="SvgjsPattern10016"
-          >
-            <rect width="426" height="3.55" x="0" y="0" fill="rgba(233, 212, 93, 1)"></rect>
-            <rect width="426" height="3.55" x="0" y="3.55" fill="rgba(0, 0, 0, 0)"></rect>
-          </pattern>
-          <clipPath id="SvgjsClipPath10015">
-            <circle r="106.5" cx="224.55" cy="474.81"></circle>
-          </clipPath>
-          <pattern
-            x="0"
-            y="0"
-            width="6"
-            height="6"
-            patternUnits="userSpaceOnUse"
-            id="SvgjsPattern10018"
-          >
-            <path d="M3 1L3 5M1 3L5 3" stroke="rgba(233, 212, 93, 1)" fill="none" stroke-width="1">
-            </path>
-          </pattern>
-          <clipPath id="SvgjsClipPath10017">
-            <circle r="114" cx="166.95" cy="267.85"></circle>
-          </clipPath>
-        </defs>
-      </svg>
+      </div>
     </div>
     <div class="px-4 py-10 sm:px-6 sm:py-28 lg:px-8 xl:px-28 xl:py-32">
       <div class="mx-auto max-w-xl lg:mx-0">
@@ -142,8 +22,6 @@ defmodule Intro do
             v<%= Application.spec(:phoenix, :vsn) %>
           </small>
         </h1>
-
-        <div id="map" phx-update="ignore" phx-hook="MapTrace" class="h-96"></div>
 
         <p class="text-[2rem] mt-4 font-semibold leading-10 tracking-tighter text-zinc-900 dark:text-zinc-100">
           Peace of mind from prototype to production.

@@ -12,20 +12,21 @@ const MapTrace = {
 
     const mapConfig = {
       container: "map",
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/mapbox/navigation-day-v1",
       center: [36.821216, -1.278514],
       zoom: 11,
+      attributionControl: false,
     };
 
     const map = new mapboxgl.Map(mapConfig);
 
     map.addControl(new mapboxgl.NavigationControl());
 
-    const list_stops = JSON.parse(this.el.dataset.list_stops);
-
-    for (let stop of list_stops) {
-      new mapboxgl.Marker().setLngLat([stop[2][0], stop[2][1]]).addTo(map);
-    }
+    // const list_stops = JSON.parse(this.el.dataset.list_stops);
+    //
+    // for (let stop of list_stops) {
+    //   new mapboxgl.Marker().setLngLat([stop[2][0], stop[2][1]]).addTo(map);
+    // }
 
     return map;
   },
