@@ -6,9 +6,8 @@ defmodule Intro do
     <div class="left-[40rem] absolute inset-y-0 right-0 z-0 hidden lg:block xl:left-[50rem] pt-20">
       <div
         id="map"
-        phx-update="ignore"
         phx-hook="MapTrace"
-        class="dark absolute inset-0 h-full w-full rounded-xl border border-gray-100 dark:border-gray-800 p-8 shadow-xl transition hover:border-emerald-500/10 dark:hover:border-emerald-500/10 hover:shadow-emerald-500/10 dark:hover:shadow-emerald-500/10"
+        class="absolute inset-0 h-full w-full rounded-xl border border-gray-100 dark:border-gray-800 p-8 shadow-xl transition hover:border-emerald-500/10 dark:hover:border-emerald-500/10 hover:shadow-emerald-500/10 dark:hover:shadow-emerald-500/10"
       >
       </div>
     </div>
@@ -28,8 +27,8 @@ defmodule Intro do
         </p>
 
         <p class="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Bring your utility business to life with our wide range home-grid-management solutions that enable utilities around the world to run profitable, efficient, and reliable systems.
-          Rafiki AMI improves a utility’s ability to collect frequent and accurate water usage data to improve billing, leak detection, and water resource management.
+          Bring your utility business to life with our wide range grid-management solutions that enable utilities around the world to run profitable, efficient, and reliable systems.
+          Rafiki Network's AMI(Advanced Metering Infrastructure) improves a utility’s ability to collect frequent and accurate resource usage data to improve billing, leak detection, and resource management.
         </p>
         <p class="text-[1.2rem] italic mt-4 leading-10 tracking-tighter text-cyan-900 dark:text-cyan-400">
           "Designed and built for utility managers who want more ROI on their technology."
